@@ -6,6 +6,7 @@ import { useRecords } from '../hooks/useRecords';
 import SummaryCards from '../components/SummaryCards';
 import RecordTable from '../components/RecordTable';
 import ExcelImportForm from '../components/ExcelImportForm';
+import VarianceDashboard from '../components/VarianceDashboard';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -79,9 +80,11 @@ export default function Dashboard() {
 
         {/* Scrollable Page Content */}
         <main className="flex-1 p-8 overflow-y-auto bg-gray-100">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             {activeTab === 'Import Excel File' ? (
               <ExcelImportForm onImportSuccess={handleImportSuccess} />
+            ) : activeTab === 'VARIANCE' ? (
+              <VarianceDashboard records={records} />
             ) : (
               <>
                 <SummaryCards summary={summary} />
