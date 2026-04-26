@@ -1,38 +1,16 @@
-import { useEffect, useState } from 'react';
-import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { useTransactions } from '../hooks/useTransactions';
+import { useSummary } from '../hooks/useSummary';
+import { useFilter } from '../hooks/useFilter';
 import SummaryCards from '../components/SummaryCards';
 import TransactionForm from '../components/TransactionForm';
 import TransactionTable from '../components/TransactionTable';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
-  const [transactions, setTransactions] = useState([]);
-  const [summary, setSummary] = useState({ totalCredit: 0, totalDebit: 0, balance: 0 });
-  const [filter, setFilter] = useState('');
-
-  const fetchData = async () => {
-    const [txRes, sumRes] = await Promise.all([api.get('/transactions'), api.get('/transactions/summary')]);
-    setTransactions(txRes.data);
-    setSummary(sumRes.data);
-  };
-
-  useEffect(() => { fetchData(); }, []);
-
-  const handleAdd = async form => {
-    await api.post('/transactions', form);
-    fetchData();
-  };
-
-  const handleDelete = async id => {
-    await api.delete(`/transactions/${id}`);
-    fetchData();
-  };
-
-  const filtered = transactions.filter(t =>
-    t.description.toLowerCase().includes(filter.toLowerCase()) ||
-    t.category.toLowerCase().includes(filter.toLowerCase())
-  );
+  const { transactions, loading, error, addTransaction, deleteTransaction } = useTransactions();
+  const { summary } = useSummary(transactions);
+  const { filter, setFilter, filtered } = useFilter(transactions);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -46,13 +24,18 @@ export default function Dashboard() {
         </div>
 
         <SummaryCards summary={summary} />
-        <TransactionForm onSubmit={handleAdd} />
+        <TransactionForm onSubmit={addTransaction} />
 
         <input className="w-full border p-2 rounded mb-4 bg-white"
           placeholder="Search by description or category..."
           value={filter} onChange={e => setFilter(e.target.value)} />
 
-        <TransactionTable transactions={filtered} onDelete={handleDelete} />
+        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+        {loading ? (
+          <p className="text-center text-gray-400 py-6">Loading...</p>
+        ) : (
+          <TransactionTable transactions={filtered} onDelete={deleteTransaction} />
+        )}
       </div>
     </div>
   );
