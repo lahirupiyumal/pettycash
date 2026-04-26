@@ -10,6 +10,7 @@ app.use(express.json());
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));
+app.use('/api/records', require('./routes/records'));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
