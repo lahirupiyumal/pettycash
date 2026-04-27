@@ -31,7 +31,6 @@ export default function Dashboard() {
     'INVOICE TOTAL',
     'CASH IN HAND',
     'VARIANCE',
-    'Monthly Performance',
     'Analytical Table',
     'Monthly Summary',
     'Cost Centers',

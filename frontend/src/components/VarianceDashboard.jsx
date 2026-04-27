@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useState, useMemo, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+const VARIANCE_STATUS_COLORS = ['#3B82F6', '#EA7B2C'];
 
 export default function VarianceDashboard({ records }) {
   const currentYear = new Date().getFullYear();
@@ -18,12 +20,23 @@ export default function VarianceDashboard({ records }) {
     return years.sort((a, b) => b - a);
   }, [records]);
 
+  useEffect(() => {
+    if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
+
   // Calculate monthly total variance data
   const monthlyVarianceData = useMemo(() => {
     const data = {};
     
     records?.forEach(record => {
-      if (record.year && record.month && record.variance) {
+      if (
+        record.year === selectedYear
+        && record.month
+        && record.variance !== undefined
+        && record.variance !== null
+      ) {
         const key = `${record.year}-${record.month}`;
         if (!data[key]) {
           data[key] = {
@@ -42,7 +55,33 @@ export default function VarianceDashboard({ records }) {
         return MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month);
       })
       .slice(-12); // Last 12 months
-  }, [records]);
+  }, [records, selectedYear]);
+
+  const varianceStatusData = useMemo(() => {
+    const yearRecords = (records || []).filter((record) => record.year === selectedYear);
+
+    const balanced = yearRecords.filter((record) => {
+      const variance = Number(record.variance) || 0;
+      const status = String(record.varianceStatus || '').toLowerCase().trim();
+      return variance === 0 || status === 'balanced';
+    }).length;
+
+    const nonZeroVariance = yearRecords.length - balanced;
+    const total = yearRecords.length;
+
+    return [
+      {
+        name: 'Balanced',
+        value: balanced,
+        percent: total > 0 ? Math.round((balanced / total) * 100) : 0,
+      },
+      {
+        name: 'Non-Zero Variance',
+        value: nonZeroVariance,
+        percent: total > 0 ? Math.round((nonZeroVariance / total) * 100) : 0,
+      },
+    ];
+  }, [records, selectedYear]);
 
   
   const formatCurrency = (value) => {
@@ -72,58 +111,93 @@ export default function VarianceDashboard({ records }) {
           </div>
         </div>
 
-        {/* Monthly Variance Chart */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
-            <div className="flex items-center space-x-3">
-              <TrendingUp className="w-5 h-5 text-white" />
-              <h3 className="text-lg font-semibold text-white">Monthly Variance Trends</h3>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Monthly Variance Chart */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+              <div className="flex items-center space-x-3">
+                <TrendingUp className="w-5 h-5 text-white" />
+                <h3 className="text-lg font-semibold text-white">Monthly Variance Trends</h3>
+              </div>
+              <p className="text-blue-100 text-sm mt-1">Variance patterns across months</p>
             </div>
-            <p className="text-blue-100 text-sm mt-1">Variance patterns across months</p>
+            <div className="p-6">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={monthlyVarianceData}>
+                  <defs>
+                    <linearGradient id="colorVariance" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 12, fill: '#6B7280' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12, fill: '#6B7280' }}
+                    tickFormatter={(value) => `LKR ${value/1000}k`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}
+                    formatter={(value) => [formatCurrency(value), 'Total Variance']}
+                    labelFormatter={(label) => {
+                      const item = monthlyVarianceData.find(d => d.month === label);
+                      return item ? `${item.month} ${item.year}` : label;
+                    }}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey="totalVariance" 
+                    fill="url(#colorVariance)"
+                    name="Total Variance"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="p-6">
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={monthlyVarianceData}>
-                <defs>
-                  <linearGradient id="colorVariance" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="month" 
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
-                  tickFormatter={(value) => `LKR ${value/1000}k`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                  }}
-                  formatter={(value) => [formatCurrency(value), 'Total Variance']}
-                  labelFormatter={(label) => {
-                    const item = monthlyVarianceData.find(d => d.month === label);
-                    return item ? `${item.month} ${item.year}` : label;
-                  }}
-                />
-                <Legend />
-                <Bar 
-                  dataKey="totalVariance" 
-                  fill="url(#colorVariance)"
-                  name="Total Variance"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+
+          {/* Variance Status Pie Chart */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4">
+              <h3 className="text-lg font-semibold text-white">Variance Status</h3>
+              <p className="text-orange-100 text-sm mt-1">Balanced vs Non-Zero Variance for {selectedYear}</p>
+            </div>
+
+            <div className="p-6">
+              {varianceStatusData.every((item) => item.value === 0) ? (
+                <p className="text-sm text-gray-500">No variance data available for the selected year.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={360}>
+                  <PieChart>
+                    <Pie
+                      data={varianceStatusData}
+                      cx="50%"
+                      cy="45%"
+                      outerRadius={120}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${percent}%`}
+                    >
+                      {varianceStatusData.map((entry, index) => (
+                        <Cell key={entry.name} fill={VARIANCE_STATUS_COLORS[index % VARIANCE_STATUS_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [`${value} records`, name]} />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
         </div>
 
