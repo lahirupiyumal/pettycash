@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Calendar, BarChart3 } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -57,39 +57,9 @@ export default function VarianceDashboard({ records }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Variance Analytics</h1>
-                <p className="text-gray-600 mt-1">Track and analyze petty cash variance across regions and time</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium text-sm">
-                {records?.length || 0} Records
-              </div>
-              <div className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium text-sm">
-                {availableYears.length} Years
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Year Selector */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <Calendar className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Select Analysis Period</h3>
-          </div>
           <div className="max-w-xs">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Year
-            </label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
