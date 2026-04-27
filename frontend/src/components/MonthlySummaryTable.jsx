@@ -53,7 +53,11 @@ export default function MonthlySummaryTable({ records = [] }) {
   const [selectedMonth, setSelectedMonth] = useState('ALL');
 
   const availableRegions = useMemo(() => {
-    const regions = [...new Set(records.map((record) => record.region).filter(Boolean))];
+    const regions = [...new Set(
+      records
+        .map((record) => String(record.region || '').trim())
+        .filter((region) => region && region.toLowerCase() !== 'region')
+    )];
     return regions.sort((a, b) => String(a).localeCompare(String(b)));
   }, [records]);
 
