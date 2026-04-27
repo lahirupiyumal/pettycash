@@ -9,6 +9,7 @@ import ExcelImportForm from '../components/ExcelImportForm';
 import VarianceDashboard from '../components/VarianceDashboard';
 import CashInHandChart from '../components/CashInHandChart';
 import MonthlySummaryTable from '../components/MonthlySummaryTable';
+import OverviewDashboard from '../components/OverviewDashboard';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -103,6 +104,16 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto">
             {activeTab === 'Import Excel File' ? (
               <ExcelImportForm onImportSuccess={handleImportSuccess} />
+            ) : activeTab === 'OVERVIEW' ? (
+              recordsError ? (
+                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
+              ) : recordsLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <OverviewDashboard records={records || []} />
+              )
             ) : activeTab === 'CASH IN HAND' ? (
               recordsError ? (
                 <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
