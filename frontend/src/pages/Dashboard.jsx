@@ -8,6 +8,7 @@ import RecordTable from '../components/RecordTable';
 import ExcelImportForm from '../components/ExcelImportForm';
 import VarianceDashboard from '../components/VarianceDashboard';
 import CashInHandChart from '../components/CashInHandChart';
+import MonthlySummaryTable from '../components/MonthlySummaryTable';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -112,6 +113,16 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <CashInHandChart records={records || []} />
+              )
+            ) : activeTab === 'Monthly Summary' ? (
+              recordsError ? (
+                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
+              ) : recordsLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <MonthlySummaryTable records={records || []} />
               )
             ) : activeTab === 'VARIANCE' ? (
               <VarianceDashboard records={records} />
