@@ -40,22 +40,31 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg flex flex-col">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-2xl font-bold text-blue-700">Petty Cash</h2>
+      <aside className="w-72 bg-white border-r border-slate-200 shadow-sm flex flex-col">
+        <div className="px-7 py-7 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase mb-2">Finance Portal</p>
+          <h2 className="text-4xl font-extrabold tracking-tight text-blue-700">Petty Cash</h2>
         </div>
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-5 py-6 space-y-2 overflow-y-auto">
+          <p className="px-3 pb-2 text-xs font-semibold tracking-[0.12em] text-slate-400 uppercase">Navigation</p>
           {menuItems.map(item => (
             <button 
               key={item} 
               onClick={() => setActiveTab(item)}
-              className={`w-full text-left block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-full text-left block px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 border ${
                 activeTab === item 
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'
+                  ? 'bg-blue-50 text-blue-700 border-blue-100 shadow-sm' 
+                  : 'text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-800'
               }`}
             >
-              {item}
+              <span className="flex items-center justify-between">
+                {item}
+                <span
+                  className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                    activeTab === item ? 'bg-blue-600' : 'bg-slate-200'
+                  }`}
+                ></span>
+              </span>
             </button>
           ))}
         </nav>
