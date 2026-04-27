@@ -7,6 +7,7 @@ import SummaryCards from '../components/SummaryCards';
 import RecordTable from '../components/RecordTable';
 import ExcelImportForm from '../components/ExcelImportForm';
 import VarianceDashboard from '../components/VarianceDashboard';
+import CashInHandChart from '../components/CashInHandChart';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -24,7 +25,17 @@ export default function Dashboard() {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  const menuItems = ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Performance', 'Import Excel File'];
+  const menuItems = [
+    'OVERVIEW',
+    'INVOICE TOTAL',
+    'CASH IN HAND',
+    'VARIANCE',
+    'Monthly Performance',
+    'Analytical Table',
+    'Monthly Summary',
+    'Cost Centers',
+    'Import Excel File',
+  ];
 
   return (
     <div className="min-h-screen flex bg-gray-100">
@@ -83,6 +94,16 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto">
             {activeTab === 'Import Excel File' ? (
               <ExcelImportForm onImportSuccess={handleImportSuccess} />
+            ) : activeTab === 'CASH IN HAND' ? (
+              recordsError ? (
+                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
+              ) : recordsLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <CashInHandChart records={records || []} />
+              )
             ) : activeTab === 'VARIANCE' ? (
               <VarianceDashboard records={records} />
             ) : (
