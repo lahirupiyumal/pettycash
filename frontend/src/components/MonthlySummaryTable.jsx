@@ -119,20 +119,32 @@ export default function MonthlySummaryTable({ records = [] }) {
     }));
   }, [summaryRows]);
 
+  const activeFilterText = `${selectedRegion === 'ALL' ? 'All Regions' : selectedRegion} | ${selectedMonth === 'ALL' ? 'All Months' : selectedMonth}`;
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Monthly Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-5">
+      <div className="bg-gradient-to-b from-white to-slate-50 rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
           <div>
-            <label htmlFor="region-filter" className="block text-sm font-medium text-slate-700 mb-2">
+            <h3 className="text-2xl font-bold text-slate-800">Monthly Summary</h3>
+            <p className="text-sm text-slate-500 mt-1">Filter by region and month to compare monthly totals.</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">{availableRegions.length} Regions</span>
+            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold">{availableMonths.length} Months</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label htmlFor="region-filter" className="block text-sm font-semibold text-slate-700 mb-2">
               Select Region
             </label>
             <select
               id="region-filter"
               value={selectedRegion}
               onChange={(event) => setSelectedRegion(event.target.value)}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="ALL">All Regions</option>
               {availableRegions.map((region) => (
@@ -144,14 +156,14 @@ export default function MonthlySummaryTable({ records = [] }) {
           </div>
 
           <div>
-            <label htmlFor="month-filter" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="month-filter" className="block text-sm font-semibold text-slate-700 mb-2">
               Select Month
             </label>
             <select
               id="month-filter"
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="ALL">All Months</option>
               {availableMonths.map((month) => (
@@ -162,32 +174,47 @@ export default function MonthlySummaryTable({ records = [] }) {
             </select>
           </div>
         </div>
+
+        <div className="mt-4 text-xs text-slate-500 font-medium">
+          Active Filters: {activeFilterText}
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h4 className="text-base font-semibold text-slate-800 mb-4">Monthly Summary Column Chart</h4>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
+          <h4 className="text-lg font-bold text-slate-800">Monthly Summary Column Chart</h4>
+          <p className="text-sm text-slate-500 mt-1">Month-wise comparison of key financial metrics.</p>
+        </div>
 
-        {chartData.length === 0 ? (
-          <p className="text-sm text-slate-500">No chart data available for the selected filters.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={360}>
-            <BarChart data={chartData} margin={{ top: 16, right: 16, left: 8, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="shortMonth" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={(value) => Number(value).toLocaleString('en-LK')} tick={{ fontSize: 12 }} />
-              <Tooltip
-                formatter={(value, name) => [Number(value).toLocaleString('en-LK'), name]}
-                labelFormatter={(label, payload) => (payload?.[0]?.payload?.month || label)}
-              />
-              <Legend />
-              <Bar dataKey="floatAmount" name="Float Amount" fill="#2563eb" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="cashInHand" name="Cash In Hand" fill="#059669" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="invoiceAmount" name="Invoice Amount" fill="#f59e0b" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="utilization" name="Utilization" fill="#7c3aed" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="variance" name="Variance" fill="#dc2626" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
+        <div className="p-5">
+
+          {chartData.length === 0 ? (
+            <p className="text-sm text-slate-500">No chart data available for the selected filters.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={380}>
+              <BarChart data={chartData} margin={{ top: 16, right: 16, left: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="shortMonth" tick={{ fontSize: 12, fill: '#475569' }} />
+                <YAxis tickFormatter={(value) => Number(value).toLocaleString('en-LK')} tick={{ fontSize: 12, fill: '#475569' }} />
+                <Tooltip
+                  formatter={(value, name) => [Number(value).toLocaleString('en-LK'), name]}
+                  labelFormatter={(label, payload) => (payload?.[0]?.payload?.month || label)}
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                  }}
+                />
+                <Legend wrapperStyle={{ paddingTop: '8px' }} />
+                <Bar dataKey="floatAmount" name="Float Amount" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="cashInHand" name="Cash In Hand" fill="#059669" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="invoiceAmount" name="Invoice Amount" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="utilization" name="Utilization" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="variance" name="Variance" fill="#dc2626" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </div>
     </div>
   );
