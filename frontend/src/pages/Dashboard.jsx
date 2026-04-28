@@ -11,6 +11,7 @@ import CashInHandChart from '../components/CashInHandChart';
 import MonthlySummaryTable from '../components/MonthlySummaryTable';
 import OverviewDashboard from '../components/OverviewDashboard';
 import ImportedDataPage from './ImportedData';
+import ForecastCharts from '../components/ForecastCharts';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -41,6 +42,7 @@ export default function Dashboard() {
     'Analytical Table',
     'Monthly Summary',
     'Cost Centers',
+    'Forecast',
     'Imported Data',
     'Import Excel File',
   ];
@@ -118,6 +120,16 @@ export default function Dashboard() {
                 error={recordsError}
                 onDeleteSuccess={handleDeleteSuccess}
               />
+            ) : activeTab === 'Forecast' ? (
+              recordsError ? (
+                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
+              ) : recordsLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <ForecastCharts records={records || []} />
+              )
             ) : activeTab === 'OVERVIEW' ? (
               recordsError ? (
                 <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
