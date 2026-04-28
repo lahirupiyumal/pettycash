@@ -10,6 +10,7 @@ import VarianceDashboard from '../components/VarianceDashboard';
 import CashInHandChart from '../components/CashInHandChart';
 import MonthlySummaryTable from '../components/MonthlySummaryTable';
 import OverviewDashboard from '../components/OverviewDashboard';
+import ImportedDataPage from './ImportedData';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -25,6 +26,11 @@ export default function Dashboard() {
 
   const handleImportSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
+    setActiveTab('Imported Data');
+  }, []);
+
+  const handleDeleteSuccess = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
   }, []);
 
   const menuItems = [
@@ -35,6 +41,7 @@ export default function Dashboard() {
     'Analytical Table',
     'Monthly Summary',
     'Cost Centers',
+    'Imported Data',
     'Import Excel File',
   ];
 
@@ -104,6 +111,13 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto">
             {activeTab === 'Import Excel File' ? (
               <ExcelImportForm onImportSuccess={handleImportSuccess} />
+            ) : activeTab === 'Imported Data' ? (
+              <ImportedDataPage
+                records={records || []}
+                loading={recordsLoading}
+                error={recordsError}
+                onDeleteSuccess={handleDeleteSuccess}
+              />
             ) : activeTab === 'OVERVIEW' ? (
               recordsError ? (
                 <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
