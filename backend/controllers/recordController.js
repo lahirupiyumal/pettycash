@@ -3,14 +3,16 @@ const PettyCashRecord = require('../models/PettyCashRecord');
 exports.importRecords = async (req, res) => {
   try {
     const records = req.body.records;
+    const fileName = req.body.fileName;
     if (!records || !Array.isArray(records)) {
       return res.status(400).json({ message: 'Invalid records array' });
     }
 
-    // Add createdBy to all records
+    // Add createdBy and sourceFileName to all records
     const recordsWithUser = records.map(record => ({
       ...record,
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      sourceFileName: fileName || 'Imported Excel File'
     }));
 
     // To prevent massive duplicates, if the user re-imports, we might want to clear old ones.
@@ -27,8 +29,17 @@ exports.importRecords = async (req, res) => {
 
 exports.getRecords = async (req, res) => {
   try {
-    const records = await PettyCashRecord.find({ createdBy: req.user.id }).sort({ year: -1, month: -1 });
+    const records = await PettyCashRecord.find({ createdBy: req.user.id }).sort({ createdAt: -1, year: -1, month: -1 });
     res.json(records);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteRecords = async (req, res) => {
+  try {
+    const result = await PettyCashRecord.deleteMany({ createdBy: req.user.id });
+    res.json({ message: 'Imported data deleted successfully.', deletedCount: result.deletedCount || 0 });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

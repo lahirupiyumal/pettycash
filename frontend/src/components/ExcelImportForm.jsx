@@ -100,7 +100,7 @@ export default function ExcelImportForm({ onImportSuccess }) {
           });
         }
 
-        const response = await api.post('/records/import', { records });
+        const response = await api.post('/records/import', { records, fileName: file.name });
         setSuccess(response.data.message);
         setFile(null);
         if (onImportSuccess) onImportSuccess();
