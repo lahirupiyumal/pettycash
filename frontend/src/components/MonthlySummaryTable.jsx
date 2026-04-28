@@ -123,22 +123,9 @@ export default function MonthlySummaryTable({ records = [] }) {
     }));
   }, [summaryRows]);
 
-  const activeFilterText = `${selectedRegion === 'ALL' ? 'All Regions' : selectedRegion} | ${selectedMonth === 'ALL' ? 'All Months' : selectedMonth}`;
-
   return (
     <div className="space-y-5">
       <div className="bg-gradient-to-b from-white to-slate-50 rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-          <div>
-            <h3 className="text-2xl font-bold text-slate-800">Monthly Summary</h3>
-            <p className="text-sm text-slate-500 mt-1">Filter by region and month to compare monthly totals.</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">{availableRegions.length} Regions</span>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold">{availableMonths.length} Months</span>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label htmlFor="region-filter" className="block text-sm font-semibold text-slate-700 mb-2">
@@ -178,18 +165,9 @@ export default function MonthlySummaryTable({ records = [] }) {
             </select>
           </div>
         </div>
-
-        <div className="mt-4 text-xs text-slate-500 font-medium">
-          Active Filters: {activeFilterText}
-        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
-          <h4 className="text-lg font-bold text-slate-800">Monthly Summary Column Chart</h4>
-          <p className="text-sm text-slate-500 mt-1">Month-wise comparison of key financial metrics.</p>
-        </div>
-
         <div className="p-5">
 
           {chartData.length === 0 ? (
