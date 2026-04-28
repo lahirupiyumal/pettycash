@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp } from 'lucide-react';
+import { CalendarDays, PieChart as PieChartIcon, TrendingUp } from 'lucide-react';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-const VARIANCE_STATUS_COLORS = ['#3B82F6', '#EA7B2C'];
+const VARIANCE_STATUS_COLORS = ['#2563eb', '#f97316'];
 
 export default function VarianceDashboard({ records }) {
   const currentYear = new Date().getFullYear();
@@ -94,60 +94,73 @@ export default function VarianceDashboard({ records }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Year Selector */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
-          <div className="max-w-xs">
+    <div className="space-y-6">
+        <div className="bg-gradient-to-b from-white to-slate-50 rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-black text-slate-900">Variance Analysis</h3>
+              <p className="text-sm text-slate-500 mt-1">Track monthly variance movement and balanced record status.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-blue-700" />
+              <label htmlFor="variance-year" className="text-sm font-semibold text-slate-700">Select Year</label>
             <select
+              id="variance-year"
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 hover:bg-white transition-colors"
+              className="px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm text-slate-800 shadow-sm transition-colors"
             >
               {availableYears.map(year => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Monthly Variance Chart */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
               <div className="flex items-center space-x-3">
-                <TrendingUp className="w-5 h-5 text-white" />
-                <h3 className="text-lg font-semibold text-white">Monthly Variance Trends</h3>
+                <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Monthly Variance Trends</h3>
+                  <p className="text-sm text-slate-500 mt-1">Variance patterns across months.</p>
+                </div>
               </div>
-              <p className="text-blue-100 text-sm mt-1">Variance patterns across months</p>
             </div>
             <div className="p-6">
+              {monthlyVarianceData.length === 0 ? (
+                <p className="text-sm text-slate-500 py-20 text-center">No variance trend data available for the selected year.</p>
+              ) : (
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={monthlyVarianceData}>
                   <defs>
                     <linearGradient id="colorVariance" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#93c5fd" stopOpacity={0.55}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis 
                     dataKey="month" 
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
+                    tick={{ fontSize: 12, fill: '#475569' }}
                     angle={-45}
                     textAnchor="end"
                     height={60}
                   />
                   <YAxis 
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
+                    tick={{ fontSize: 12, fill: '#475569' }}
                     tickFormatter={(value) => `LKR ${value/1000}k`}
                   />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)'
                     }}
                     formatter={(value) => [formatCurrency(value), 'Total Variance']}
                     labelFormatter={(label) => {
@@ -164,19 +177,26 @@ export default function VarianceDashboard({ records }) {
                   />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
           </div>
 
-          {/* Variance Status Pie Chart */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4">
-              <h3 className="text-lg font-semibold text-white">Variance Status</h3>
-              <p className="text-orange-100 text-sm mt-1">Balanced vs Non-Zero Variance for {selectedYear}</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-xl bg-orange-50 text-orange-700 border border-orange-100 flex items-center justify-center">
+                  <PieChartIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Variance Status</h3>
+                  <p className="text-sm text-slate-500 mt-1">Balanced vs non-zero variance for {selectedYear}.</p>
+                </div>
+              </div>
             </div>
 
             <div className="p-6">
               {varianceStatusData.every((item) => item.value === 0) ? (
-                <p className="text-sm text-gray-500">No variance data available for the selected year.</p>
+                <p className="text-sm text-slate-500 py-20 text-center">No variance data available for the selected year.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={360}>
                   <PieChart>
@@ -192,7 +212,14 @@ export default function VarianceDashboard({ records }) {
                         <Cell key={entry.name} fill={VARIANCE_STATUS_COLORS[index % VARIANCE_STATUS_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value, name) => [`${value} records`, name]} />
+                    <Tooltip
+                      formatter={(value, name) => [`${value} records`, name]}
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                      }}
+                    />
                     <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -201,16 +228,15 @@ export default function VarianceDashboard({ records }) {
           </div>
         </div>
 
-        {/* Footer Stats Bar */}
-        <div className="mt-8 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-200">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <div className="flex flex-wrap items-center justify-between">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Monthly Variance Trends</span>
+                <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                <span className="text-sm text-slate-600">Monthly Variance Trends</span>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-slate-500">
               Last updated: {new Date().toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
@@ -219,7 +245,6 @@ export default function VarianceDashboard({ records }) {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }

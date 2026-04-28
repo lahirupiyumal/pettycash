@@ -12,6 +12,18 @@ import MonthlySummaryTable from '../components/MonthlySummaryTable';
 import OverviewDashboard from '../components/OverviewDashboard';
 import ImportedDataPage from './ImportedData';
 import ForecastCharts from '../components/ForecastCharts';
+import {
+  BarChart3,
+  FileSpreadsheet,
+  Gauge,
+  HandCoins,
+  LayoutDashboard,
+  LogOut,
+  PieChart,
+  ReceiptText,
+  Upload,
+  WalletCards,
+} from 'lucide-react';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -35,80 +47,111 @@ export default function Dashboard() {
   }, []);
 
   const menuItems = [
-    'OVERVIEW',
-    'INVOICE TOTAL',
-    'CASH IN HAND',
-    'VARIANCE',
-    'Monthly Summary',
-    'Cost Centers',
-    'Forecast',
-    'Imported Data',
-    'Import Excel File',
+    { label: 'OVERVIEW', icon: LayoutDashboard },
+    { label: 'INVOICE TOTAL', icon: ReceiptText },
+    { label: 'CASH IN HAND', icon: HandCoins },
+    { label: 'VARIANCE', icon: PieChart },
+    { label: 'Monthly Summary', icon: BarChart3 },
+    { label: 'Cost Centers', icon: WalletCards },
+    { label: 'Forecast', icon: Gauge },
+    { label: 'Imported Data', icon: FileSpreadsheet },
+    { label: 'Import Excel File', icon: Upload },
   ];
 
+  const pageTitle = activeTab === 'OVERVIEW' ? 'Dashboard Overview' : activeTab;
+
   return (
-    <div className="min-h-screen flex bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-200 shadow-sm flex flex-col">
-        <div className="px-7 py-7 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
-          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase mb-2">Finance Portal</p>
-          <h2 className="text-4xl font-extrabold tracking-tight text-blue-700">Petty Cash</h2>
+    <div className="min-h-screen flex bg-slate-100 text-slate-900">
+      <aside className="hidden lg:flex w-72 bg-slate-950 text-white flex-col shadow-xl">
+        <div className="px-7 py-7 border-b border-white/10 bg-slate-900">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-950/20">
+              <WalletCards className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold tracking-[0.14em] text-slate-400 uppercase">Finance Portal</p>
+              <h2 className="text-2xl font-black tracking-tight">Petty Cash</h2>
+            </div>
+          </div>
         </div>
-        <nav className="flex-1 px-5 py-6 space-y-2 overflow-y-auto">
-          <p className="px-3 pb-2 text-xs font-semibold tracking-[0.12em] text-slate-400 uppercase">Navigation</p>
-          {menuItems.map(item => (
+        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+          <p className="px-3 pb-3 text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">Navigation</p>
+          {menuItems.map(({ label, icon: Icon }) => (
             <button 
-              key={item} 
-              onClick={() => setActiveTab(item)}
-              className={`w-full text-left block px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 border ${
-                activeTab === item 
-                  ? 'bg-blue-50 text-blue-700 border-blue-100 shadow-sm' 
-                  : 'text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-800'
+              key={label} 
+              onClick={() => setActiveTab(label)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                activeTab === label
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-950/20' 
+                  : 'text-slate-300 border-transparent hover:bg-white/10 hover:text-white'
               }`}
             >
-              <span className="flex items-center justify-between">
-                {item}
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="flex flex-1 items-center justify-between">
+                {label}
                 <span
                   className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                    activeTab === item ? 'bg-blue-600' : 'bg-slate-200'
+                    activeTab === label ? 'bg-orange-300' : 'bg-slate-700'
                   }`}
                 ></span>
               </span>
             </button>
           ))}
         </nav>
+        <div className="mx-4 mb-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Signed in</p>
+          <p className="mt-1 text-sm font-bold text-white truncate">{user?.name || 'User'}</p>
+          <p className="text-xs text-slate-400 capitalize">{user?.role || 'User'}</p>
+        </div>
       </aside>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center z-10 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800">
-            {activeTab === 'OVERVIEW' ? 'Dashboard Overview' : activeTab}
-          </h1>
+        <header className="bg-white/95 backdrop-blur border-b border-slate-200 px-5 md:px-8 py-4 flex flex-wrap gap-4 justify-between items-center z-10 shadow-sm">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.14em] text-blue-700 uppercase">Petty Cash Control Center</p>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
+          </div>
           
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-lg">
-                {user?.name?.charAt(0)?.toUpperCase()}
+              <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-black text-lg">
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               <div className="hidden md:block">
-                <p className="text-sm font-semibold text-gray-700">{user?.name}</p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role || 'User'}</p>
+                <p className="text-sm font-bold text-slate-800">{user?.name || 'User'}</p>
+                <p className="text-xs text-slate-500 capitalize">{user?.role || 'User'}</p>
               </div>
             </div>
-            <div className="h-6 w-px bg-gray-200 mx-2"></div>
+            <div className="h-6 w-px bg-slate-200 mx-1"></div>
             <button 
               onClick={logout} 
-              className="text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-red-100"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-4 py-2.5 rounded-xl transition-colors border border-transparent hover:border-red-100"
             >
+              <LogOut className="h-4 w-4" />
               Logout
             </button>
           </div>
         </header>
 
-        {/* Scrollable Page Content */}
-        <main className="flex-1 p-8 overflow-y-auto bg-gray-100">
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {menuItems.map(({ label }) => (
+              <button
+                key={label}
+                onClick={() => setActiveTab(label)}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border ${
+                  activeTab === label
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-slate-600 border-slate-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <main className="flex-1 p-5 md:p-8 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
             {activeTab === 'Import Excel File' ? (
               <ExcelImportForm onImportSuccess={handleImportSuccess} />
