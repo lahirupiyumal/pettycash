@@ -14,10 +14,10 @@ import {
 } from 'recharts';
 
 const COLORS = {
-  values: '#3b82f6',
+  values: '#2563eb',
   forecast: '#f97316',
-  lowerBound: '#fca5a5',
-  upperBound: '#fcd34d',
+  lowerBound: '#ef4444',
+  upperBound: '#f59e0b',
 };
 
 function formatNumber(value) {

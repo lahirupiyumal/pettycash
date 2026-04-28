@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CalendarDays, HandCoins } from 'lucide-react';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -78,19 +79,28 @@ export default function CashInHandChart({ records = [] }) {
   const hasDataForYear = monthlyCashInHandData.some((item) => item.total > 0);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-wrap gap-4 items-center justify-between">
-        <h3 className="font-semibold text-gray-800">Monthly Cash In Hand Amount</h3>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center">
+            <HandCoins className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Monthly Cash In Hand Amount</h3>
+            <p className="text-sm text-slate-500 mt-1">Year-wise cash position across all months.</p>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="cash-in-hand-year" className="text-sm font-medium text-gray-700">
+          <CalendarDays className="h-4 w-4 text-blue-700" />
+          <label htmlFor="cash-in-hand-year" className="text-sm font-semibold text-slate-700">
             Select Year
           </label>
           <select
             id="cash-in-hand-year"
             value={selectedYear}
             onChange={(event) => setSelectedYear(Number(event.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             {availableYears.map((year) => (
               <option key={year} value={year}>
@@ -103,15 +113,22 @@ export default function CashInHandChart({ records = [] }) {
 
       <div className="p-6">
         {!hasDataForYear ? (
-          <p className="text-sm text-gray-500">No cash in hand data available for the selected year.</p>
+          <p className="text-sm text-slate-500 py-12 text-center">No cash in hand data available for the selected year.</p>
         ) : (
           <ResponsiveContainer width="100%" height={440}>
             <BarChart data={monthlyCashInHandData} margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={(value) => `${Number(value).toLocaleString()}`} />
-              <Tooltip formatter={(value) => [Number(value).toLocaleString(), 'Total']} />
-              <Bar dataKey="total" fill="#f4b400" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#475569' }} />
+              <YAxis tick={{ fontSize: 12, fill: '#475569' }} tickFormatter={(value) => `${Number(value).toLocaleString()}`} />
+              <Tooltip
+                formatter={(value) => [Number(value).toLocaleString('en-LK'), 'Total']}
+                contentStyle={{
+                  borderRadius: '12px',
+                  border: '1px solid #cbd5e1',
+                  boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                }}
+              />
+              <Bar dataKey="total" fill="#2563eb" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
