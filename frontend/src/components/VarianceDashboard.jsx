@@ -236,13 +236,6 @@ export default function VarianceDashboard({ records }) {
                 <span className="text-sm text-slate-600">Monthly Variance Trends</span>
               </div>
             </div>
-            <div className="text-sm text-slate-500">
-              Last updated: {new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </div>
           </div>
         </div>
     </div>

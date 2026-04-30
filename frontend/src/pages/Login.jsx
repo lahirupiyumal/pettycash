@@ -26,25 +26,29 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans text-slate-800">
-      <div className="w-full max-w-md p-8 m-4 bg-white rounded-2xl shadow-lg border border-slate-100">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
-          <p className="text-sm text-slate-500 mt-2">Sign in to your Petty Cash account</p>
-        </div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_35%,#0f172a_140%)] px-4 py-10 text-slate-100">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center justify-center">
+        <div className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/90 shadow-2xl shadow-slate-900/30 backdrop-blur">
+          <div className="border-b border-white/10 bg-slate-900 px-8 py-7">
+            <p className="text-xs font-semibold tracking-[0.16em] text-blue-300 uppercase">Finance Portal</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-white">Welcome back</h2>
+            <p className="mt-2 text-sm text-slate-300">Sign in to your Petty Cash account</p>
+          </div>
+
+          <div className="px-8 py-8">
 
         {error && (
-          <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded">
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="email">Email Address</label>
+            <label className="mb-1 block text-sm font-medium text-slate-300" htmlFor="email">Email Address</label>
             <input 
               id="email"
-              className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors" 
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors" 
               type="email" 
               placeholder="you@example.com"
               value={form.email} 
@@ -54,10 +58,10 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="password">Password</label>
+            <label className="mb-1 block text-sm font-medium text-slate-300" htmlFor="password">Password</label>
             <input 
               id="password"
-              className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors" 
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors" 
               type="password" 
               placeholder="••••••••"
               value={form.password} 
@@ -69,19 +73,21 @@ export default function Login() {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+            className="mt-2 w-full rounded-xl bg-blue-600 py-3 font-semibold text-white shadow-lg shadow-blue-950/30 transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-          <p className="text-sm text-slate-600">
+        <div className="mt-8 border-t border-white/10 pt-6 text-center">
+          <p className="text-sm text-slate-300">
             Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+            <Link to="/register" className="font-semibold text-blue-300 transition-colors hover:text-blue-200">
               Sign up
             </Link>
           </p>
+        </div>
+          </div>
         </div>
       </div>
     </div>
