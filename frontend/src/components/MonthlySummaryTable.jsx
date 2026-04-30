@@ -48,9 +48,15 @@ function normalizeMonth(monthValue) {
   return MONTH_ALIASES[key] || null;
 }
 
+function normalizeYear(yearValue) {
+  const year = Number(yearValue);
+  return Number.isFinite(year) ? year : null;
+}
+
 export default function MonthlySummaryTable({ records = [] }) {
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [selectedMonth, setSelectedMonth] = useState('ALL');
+  const [selectedYear, setSelectedYear] = useState('ALL');
 
   const availableRegions = useMemo(() => {
     const regions = [...new Set(
@@ -71,6 +77,16 @@ export default function MonthlySummaryTable({ records = [] }) {
     return MONTHS.filter((month) => months.has(month));
   }, [records]);
 
+  const availableYears = useMemo(() => {
+    const years = [...new Set(
+      records
+        .map((record) => normalizeYear(record.year))
+        .filter((year) => year !== null)
+    )];
+
+    return years.sort((a, b) => b - a);
+  }, [records]);
+
   const summaryRows = useMemo(() => {
     const monthWiseMap = new Map();
 
@@ -87,9 +103,12 @@ export default function MonthlySummaryTable({ records = [] }) {
 
     records.forEach((record) => {
       const month = normalizeMonth(record.month);
+      const year = normalizeYear(record.year);
       if (!month) return;
+      if (year === null) return;
 
       if (selectedRegion !== 'ALL' && record.region !== selectedRegion) return;
+      if (selectedYear !== 'ALL' && year !== Number(selectedYear)) return;
       if (selectedMonth !== 'ALL' && month !== selectedMonth) return;
 
       const row = monthWiseMap.get(month);
@@ -114,7 +133,7 @@ export default function MonthlySummaryTable({ records = [] }) {
 
         return total > 0;
       });
-  }, [records, selectedRegion, selectedMonth]);
+  }, [records, selectedRegion, selectedMonth, selectedYear]);
 
   const chartData = useMemo(() => {
     return summaryRows.map((row) => ({
@@ -126,7 +145,7 @@ export default function MonthlySummaryTable({ records = [] }) {
   return (
     <div className="space-y-5">
       <div className="bg-gradient-to-b from-white to-slate-50 rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div>
             <label htmlFor="region-filter" className="block text-sm font-semibold text-slate-700 mb-2">
               Select Region
@@ -160,6 +179,25 @@ export default function MonthlySummaryTable({ records = [] }) {
               {availableMonths.map((month) => (
                 <option key={month} value={month}>
                   {month}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="year-filter" className="block text-sm font-semibold text-slate-700 mb-2">
+              Select Year
+            </label>
+            <select
+              id="year-filter"
+              value={selectedYear}
+              onChange={(event) => setSelectedYear(event.target.value)}
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="ALL">All Years</option>
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
                 </option>
               ))}
             </select>
