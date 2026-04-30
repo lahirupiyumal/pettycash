@@ -18,7 +18,6 @@ import {
   Gauge,
   HandCoins,
   LayoutDashboard,
-  LogOut,
   PieChart,
   ReceiptText,
   Upload,
@@ -26,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   
   // Keep transactions for backwards compatibility with summary cards if needed
   const { transactions } = useTransactions();
@@ -98,11 +97,6 @@ export default function Dashboard() {
             </button>
           ))}
         </nav>
-        <div className="mx-4 mb-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Signed in</p>
-          <p className="mt-1 text-sm font-bold text-white truncate">{user?.name || 'User'}</p>
-          <p className="text-xs text-slate-400 capitalize">{user?.role || 'User'}</p>
-        </div>
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -123,13 +117,6 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="h-6 w-px bg-slate-200 mx-1"></div>
-            <button 
-              onClick={logout} 
-              className="inline-flex items-center gap-2 text-sm font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-4 py-2.5 rounded-xl transition-colors border border-transparent hover:border-red-100"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </button>
           </div>
         </header>
 
