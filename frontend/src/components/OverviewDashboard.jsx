@@ -12,8 +12,10 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { Layers3, PieChart as PieChartIcon, Sparkles, TrendingUp } from 'lucide-react';
 
 const STATUS_COLORS = ['#3b6ec2', '#eb7f2f'];
+const CARD_ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#f59e0b', '#dc2626'];
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('en-LK');
@@ -92,41 +94,52 @@ export default function OverviewDashboard({ records = [] }) {
   }, [records]);
 
   const cards = [
-    { label: 'Total Float Value', value: totals.floatAmount },
-    { label: 'Total Cash In Hand', value: totals.cashInHand },
-    { label: 'Total Invoice Amount', value: totals.invoiceAmount },
-    { label: 'Total Expenses', value: totals.utilization },
-    { label: 'Total Variance', value: totals.variance },
+    { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3 },
+    { label: 'Total Cash In Hand', value: totals.cashInHand, icon: Sparkles },
+    { label: 'Total Invoice Amount', value: totals.invoiceAmount, icon: TrendingUp },
+    { label: 'Total Expenses', value: totals.utilization, icon: PieChartIcon },
+    { label: 'Total Variance', value: totals.variance, icon: PieChartIcon },
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+    <div className="space-y-8 rounded-[2rem] bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_34%,#ffffff_100%)] p-4 sm:p-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((card) => (
           <div
             key={card.label}
-            className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+            className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg"
           >
-            <div className="px-5 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
-              <p className="text-sm font-semibold text-slate-700 leading-snug min-h-[2.75rem]">
-                {card.label}
-              </p>
-            </div>
-            <div className="px-5 py-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-blue-700">LKR</p>
-              <p className="mt-2 text-[clamp(1.6rem,1.5vw,2.3rem)] font-black text-slate-900 leading-none whitespace-nowrap">
-                {formatCardNumber(card.value)}
-              </p>
+            <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: CARD_ACCENTS[[...cards].indexOf(card) % CARD_ACCENTS.length] }} />
+            <div className="px-5 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 leading-snug min-h-[2.75rem]">{card.label}</p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.08em] text-blue-700">LKR</p>
+                  <p className="mt-2 text-[clamp(1.45rem,1.5vw,2.15rem)] font-black text-slate-900 leading-none whitespace-nowrap">
+                    {formatCardNumber(card.value)}
+                  </p>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-200">
+                  <card.icon className="h-5 w-5" />
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
-            <h3 className="text-lg font-bold text-slate-800">Monthly Trend Chart</h3>
-            <p className="text-sm text-slate-500 mt-1">Region-wise comparison of float and utilization totals.</p>
+        <div className="xl:col-span-2 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-black text-slate-800">Monthly Trend Chart</h3>
+                <p className="mt-1 text-sm text-slate-500">Region-wise comparison of float and utilization totals.</p>
+              </div>
+              <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
+                {regionTrendData.length} regions
+              </div>
+            </div>
           </div>
           <div className="p-6">
           {regionTrendData.length === 0 ? (
@@ -160,10 +173,10 @@ export default function OverviewDashboard({ records = [] }) {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
-            <h3 className="text-lg font-bold text-slate-800">Variance Status</h3>
-            <p className="text-sm text-slate-500 mt-1">Balanced vs non-zero variance records.</p>
+        <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+            <h3 className="text-lg font-black text-slate-800">Variance Status</h3>
+            <p className="mt-1 text-sm text-slate-500">Balanced vs non-zero variance records.</p>
           </div>
           <div className="p-6">
           {varianceStatusData.every((item) => item.value === 0) ? (
@@ -198,6 +211,12 @@ export default function OverviewDashboard({ records = [] }) {
           )}
           </div>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 shadow-sm">
+        <p className="text-sm text-slate-600">
+          Tip: use the side menu to switch between overview, cash, variance, and monthly summaries.
+        </p>
       </div>
     </div>
   );
