@@ -63,16 +63,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex bg-slate-100 text-slate-900">
       <aside className="hidden lg:flex w-72 bg-slate-950 text-white flex-col shadow-xl">
-        <div className="px-7 py-7 border-b border-white/10 bg-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 flex-shrink-0 flex items-center justify-center">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg" alt="SLT Logo" className="h-10 w-10 object-contain" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold tracking-[0.14em] text-slate-400 uppercase">Finance Portal</p>
-              <h2 className="text-2xl font-black tracking-tight">Petty Cash</h2>
-            </div>
-          </div>
+        <div className="px-7 py-5 border-b border-white/10 bg-slate-900 flex items-center justify-center">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg" alt="SLT Logo" className="h-10 w-10 object-contain" />
         </div>
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
           <p className="px-3 pb-3 text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">Navigation</p>
