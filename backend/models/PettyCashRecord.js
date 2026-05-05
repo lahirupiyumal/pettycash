@@ -36,6 +36,7 @@ const pettyCashRecordSchema = new mongoose.Schema({
   varianceStatus: { type: String },
   checkedStatus: { type: String },
   sourceFileName: { type: String },
+  importFileId: { type: mongoose.Schema.Types.ObjectId, ref: 'ImportedFile' },
   
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
