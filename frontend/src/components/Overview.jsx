@@ -163,7 +163,7 @@ export default function Overview({ records = [] }) {
   ];
 
   return (
-    <div className="space-y-8 rounded-[2rem] p-4 sm:p-6 bg-transparent">
+    <div className="space-y-6 rounded-[2rem] bg-transparent">
       <div className="flex justify-end">
         <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200">
           <label htmlFor="yearFilter" className="text-xs font-bold uppercase tracking-widest text-slate-500">Year:</label>
