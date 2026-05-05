@@ -5,6 +5,8 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  Line,
+  LineChart,
   Tooltip,
   Legend,
   ResponsiveContainer,
@@ -12,6 +14,36 @@ import {
 import { Layers3, PieChart as PieChartIcon, Sparkles, TrendingUp } from 'lucide-react';
 
 const CARD_ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#f59e0b', '#dc2626'];
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const MONTH_ALIASES = {
+  jan: 'January',
+  january: 'January',
+  feb: 'February',
+  february: 'February',
+  mar: 'March',
+  march: 'March',
+  apr: 'April',
+  april: 'April',
+  may: 'May',
+  jun: 'June',
+  june: 'June',
+  jul: 'July',
+  july: 'July',
+  aug: 'August',
+  august: 'August',
+  sep: 'September',
+  sept: 'September',
+  september: 'September',
+  oct: 'October',
+  october: 'October',
+  nov: 'November',
+  november: 'November',
+  dec: 'December',
+  december: 'December',
+};
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('en-LK');
@@ -19,6 +51,11 @@ function formatNumber(value) {
 
 function formatCardNumber(value) {
   return Number(value || 0).toLocaleString('en-US');
+}
+
+function normalizeMonth(monthValue) {
+  if (!monthValue) return null;
+  return MONTH_ALIASES[String(monthValue).trim().toLowerCase()] || null;
 }
 
 export default function Overview({ records = [] }) {
@@ -80,6 +117,43 @@ export default function Overview({ records = [] }) {
     return [...regionMap.values()].sort((a, b) => a.region.localeCompare(b.region));
   }, [filteredRecords]);
 
+  const monthlyTrendData = useMemo(() => {
+    const trendMap = new Map();
+
+    filteredRecords.forEach((record) => {
+      const month = normalizeMonth(record.month);
+      const year = Number(record.year);
+      if (!month || !Number.isFinite(year)) return;
+
+      const monthIndex = MONTHS.indexOf(month);
+      const key = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+
+      if (!trendMap.has(key)) {
+        trendMap.set(key, {
+          key,
+          label: selectedYear === 'All' ? `${String(year).slice(-2)} ${month.slice(0, 3)}` : month.slice(0, 3),
+          year,
+          monthIndex,
+          floatAmount: 0,
+          cashInHand: 0,
+          invoiceAmount: 0,
+          utilization: 0,
+        });
+      }
+
+      const row = trendMap.get(key);
+      row.floatAmount += Number(record.floatAmount) || 0;
+      row.cashInHand += Number(record.cashInHand) || 0;
+      row.invoiceAmount += Number(record.invoiceAmount) || 0;
+      row.utilization += Number(record.utilization) || 0;
+    });
+
+    return [...trendMap.values()].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.monthIndex - b.monthIndex;
+    });
+  }, [filteredRecords, selectedYear]);
+
   const cards = [
     { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3 },
     { label: 'Total Cash In Hand', value: totals.cashInHand, icon: Sparkles },
@@ -134,7 +208,7 @@ export default function Overview({ records = [] }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 bg-white px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -147,14 +221,14 @@ export default function Overview({ records = [] }) {
               {regionTrendData.length} Regions
             </div>
           </div>
-          <div className="p-5 sm:p-6">
+          <div className="p-4 sm:p-5">
           {regionTrendData.length === 0 ? (
-            <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
               <p className="text-sm font-semibold text-slate-500">No trend data available.</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={360}>
-              <BarChart data={regionTrendData} margin={{ top: 16, right: 12, left: 0, bottom: 54 }} barCategoryGap="28%">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={regionTrendData} margin={{ top: 12, right: 8, left: 0, bottom: 48 }} barCategoryGap="28%">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
                   dataKey="region"
@@ -187,6 +261,59 @@ export default function Overview({ records = [] }) {
               </BarChart>
             </ResponsiveContainer>
           )}
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 bg-white px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-1.5 rounded-full bg-emerald-500" />
+              <div>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">Monthly Financial Movement</h3>
+              </div>
+            </div>
+            <div className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
+              {monthlyTrendData.length} Months
+            </div>
+          </div>
+          <div className="p-4 sm:p-5">
+            {monthlyTrendData.length === 0 ? (
+              <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+                <p className="text-sm font-semibold text-slate-500">No monthly trend data available.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={monthlyTrendData} margin={{ top: 12, right: 12, left: 0, bottom: 14 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                    dy={8}
+                  />
+                  <YAxis tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${Math.round(value / 1000)}k`} width={56} />
+                  <Tooltip
+                    formatter={(value, name) => [`Rs. ${formatNumber(value)}`, name]}
+                    contentStyle={{
+                      borderRadius: '16px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                      padding: '12px 16px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(8px)'
+                    }}
+                    itemStyle={{ padding: '2px 0', fontWeight: 600 }}
+                    labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '12px', fontWeight: 700 }} iconType="circle" />
+                  <Line type="monotone" dataKey="floatAmount" name="Float Amount" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="cashInHand" name="Cash In Hand" stroke="#0f766e" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="invoiceAmount" name="Invoice Amount" stroke="#7c3aed" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="utilization" name="Utilization" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
