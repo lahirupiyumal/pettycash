@@ -55,17 +55,11 @@ exports.getRecords = async (req, res) => {
     }
 
     if (!targetImportFileId) {
-      const latestFile = await ImportedFile.findOne({ createdBy: req.user.id }).sort({ createdAt: -1 });
-      if (latestFile) {
-        targetImportFileId = latestFile._id;
-      } else {
-        const legacyRecords = await PettyCashRecord.find({
-          createdBy: req.user.id,
-          $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
-        }).sort({ year: -1, month: -1, createdAt: -1 });
+      const allRecords = await PettyCashRecord.find({
+        createdBy: req.user.id,
+      }).sort({ year: -1, month: -1, createdAt: -1 });
 
-        return res.json(legacyRecords);
-      }
+      return res.json(allRecords);
     }
 
     const records = await PettyCashRecord.find({
