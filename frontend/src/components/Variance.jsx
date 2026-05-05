@@ -95,26 +95,20 @@ export default function Variance({ records }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">Variance Analysis</h3>
-            <p className="text-sm font-medium text-slate-500 mt-1">Track monthly variance movement and record status.</p>
-          </div>
-          <div className="flex items-center gap-3 bg-slate-50 px-5 py-2.5 rounded-xl border border-slate-200">
-            <CalendarDays className="h-4 w-4 text-blue-600" />
-            <label htmlFor="variance-year" className="text-xs font-bold uppercase tracking-widest text-slate-500">Year:</label>
-            <select
-              id="variance-year"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-transparent text-sm font-black text-slate-800 focus:outline-none cursor-pointer"
-            >
-              {availableYears.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
+      <div className="flex justify-end">
+        <div className="flex items-center gap-3 bg-slate-50 px-5 py-2.5 rounded-xl border border-slate-200">
+          <CalendarDays className="h-4 w-4 text-blue-600" />
+          <label htmlFor="variance-year" className="text-xs font-bold uppercase tracking-widest text-slate-500">Year:</label>
+          <select
+            id="variance-year"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="bg-transparent text-sm font-black text-slate-800 focus:outline-none cursor-pointer"
+          >
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
       </div>
 
