@@ -58,6 +58,14 @@ function normalizeMonth(monthValue) {
   return MONTH_ALIASES[String(monthValue).trim().toLowerCase()] || null;
 }
 
+function buildYAxisTicks(maxValue) {
+  if (!maxValue) return [0, 70000, 140000, 210000, 280000];
+  const baseStep = 70000;
+  const roundedMax = Math.max(baseStep, Math.ceil(maxValue / baseStep) * baseStep);
+  const step = roundedMax <= 280000 ? baseStep : Math.ceil(roundedMax / 4 / 10000) * 10000;
+  return Array.from({ length: 5 }, (_, index) => index * step);
+}
+
 export default function Overview({ records = [] }) {
   const [selectedYear, setSelectedYear] = useState('All');
 
@@ -153,6 +161,21 @@ export default function Overview({ records = [] }) {
       return a.monthIndex - b.monthIndex;
     });
   }, [filteredRecords, selectedYear]);
+
+  const monthlyTrendMax = useMemo(() => {
+    return monthlyTrendData.reduce((max, item) => {
+      return Math.max(max, item.cashInHand, item.floatAmount, item.invoiceAmount, item.utilization);
+    }, 0);
+  }, [monthlyTrendData]);
+
+  const monthlyTrendTicks = useMemo(() => buildYAxisTicks(monthlyTrendMax), [monthlyTrendMax]);
+
+  const monthlyTrendXAxisTicks = useMemo(() => {
+    const lastIndex = monthlyTrendData.length - 1;
+    return monthlyTrendData
+      .filter((item, index) => index % 3 === 0 || index === lastIndex)
+      .map((item) => item.label);
+  }, [monthlyTrendData]);
 
   const cards = [
     { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3, tint: 'bg-blue-50 text-blue-600 ring-blue-100' },
@@ -283,17 +306,26 @@ export default function Overview({ records = [] }) {
                 <p className="text-sm font-semibold text-slate-500">No monthly trend data available.</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={monthlyTrendData} margin={{ top: 12, right: 12, left: 0, bottom: 14 }}>
+              <ResponsiveContainer width="100%" height={340}>
+                <LineChart data={monthlyTrendData} margin={{ top: 14, right: 18, left: 0, bottom: 28 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }}
+                    ticks={monthlyTrendXAxisTicks}
+                    tick={{ fontSize: 12, fill: '#64748b', fontWeight: 800 }}
                     tickLine={false}
                     axisLine={{ stroke: '#e2e8f0' }}
-                    dy={8}
+                    dy={10}
                   />
-                  <YAxis tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${Math.round(value / 1000)}k`} width={56} />
+                  <YAxis
+                    domain={[0, monthlyTrendTicks[monthlyTrendTicks.length - 1]]}
+                    ticks={monthlyTrendTicks}
+                    tick={{ fontSize: 12, fill: '#64748b', fontWeight: 800 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${Math.round(value / 1000)}k`}
+                    width={56}
+                  />
                   <Tooltip
                     formatter={(value, name) => [`Rs. ${formatNumber(value)}`, name]}
                     contentStyle={{
@@ -307,11 +339,11 @@ export default function Overview({ records = [] }) {
                     itemStyle={{ padding: '2px 0', fontWeight: 600 }}
                     labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
                   />
-                  <Legend wrapperStyle={{ paddingTop: '12px', fontWeight: 700 }} iconType="circle" />
-                  <Line type="monotone" dataKey="floatAmount" name="Float Amount" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                  <Line type="monotone" dataKey="cashInHand" name="Cash In Hand" stroke="#0f766e" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                  <Line type="monotone" dataKey="invoiceAmount" name="Invoice Amount" stroke="#7c3aed" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                  <Line type="monotone" dataKey="utilization" name="Utilization" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Legend wrapperStyle={{ paddingTop: '18px', fontWeight: 900, fontSize: '14px' }} iconType="circle" />
+                  <Line type="monotone" dataKey="cashInHand" name="Cash In Hand" stroke="#0f766e" strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#ffffff' }} activeDot={{ r: 7, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="floatAmount" name="Float Amount" stroke="#2563eb" strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#ffffff' }} activeDot={{ r: 7, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="invoiceAmount" name="Invoice Amount" stroke="#7c3aed" strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#ffffff' }} activeDot={{ r: 7, strokeWidth: 0 }} />
+                  <Line type="monotone" dataKey="utilization" name="Utilization" stroke="#f59e0b" strokeWidth={4} dot={{ r: 5, strokeWidth: 3, fill: '#ffffff' }} activeDot={{ r: 7, strokeWidth: 0 }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
