@@ -155,11 +155,11 @@ export default function Overview({ records = [] }) {
   }, [filteredRecords, selectedYear]);
 
   const cards = [
-    { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3 },
-    { label: 'Total Cash In Hand', value: totals.cashInHand, icon: Sparkles },
-    { label: 'Total Invoice Amount', value: totals.invoiceAmount, icon: TrendingUp },
-    { label: 'Total Expenses', value: totals.utilization, icon: PieChartIcon },
-    { label: 'Total Variance', value: totals.variance, icon: PieChartIcon },
+    { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3, tint: 'bg-blue-50 text-blue-600 ring-blue-100' },
+    { label: 'Total Cash In Hand', value: totals.cashInHand, icon: Sparkles, tint: 'bg-teal-50 text-teal-600 ring-teal-100' },
+    { label: 'Total Invoice Amount', value: totals.invoiceAmount, icon: TrendingUp, tint: 'bg-violet-50 text-violet-600 ring-violet-100' },
+    { label: 'Total Expenses', value: totals.utilization, icon: PieChartIcon, tint: 'bg-amber-50 text-amber-600 ring-amber-100' },
+    { label: 'Total Variance', value: totals.variance, icon: PieChartIcon, tint: 'bg-red-50 text-red-600 ring-red-100' },
   ];
 
   return (
@@ -185,22 +185,23 @@ export default function Overview({ records = [] }) {
         {cards.map((card, index) => (
           <div
             key={card.label}
-            className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/50"
+            className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/30"
           >
-            <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: CARD_ACCENTS[index % CARD_ACCENTS.length] }} />
-            <div className="px-5 py-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 leading-snug min-h-[2rem]">{card.label}</p>
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">LKR</span>
-                    <p className="text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap">
+            <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: CARD_ACCENTS[index % CARD_ACCENTS.length] }} />
+            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-10 transition-transform duration-300 group-hover:scale-125" style={{ backgroundColor: CARD_ACCENTS[index % CARD_ACCENTS.length] }} />
+            <div className="relative px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 mb-3 leading-snug min-h-[2rem]">{card.label}</p>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-black text-blue-700 uppercase tracking-widest">LKR</span>
+                    <p className="text-2xl font-black text-slate-950 tracking-tight whitespace-nowrap">
                       {formatCardNumber(card.value)}
                     </p>
                   </div>
                 </div>
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600 ring-1 ring-slate-100">
-                  <card.icon className="h-5 w-5" strokeWidth={2} />
+                <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 transition-transform duration-300 group-hover:scale-105 ${card.tint}`}>
+                  <card.icon className="h-5 w-5" strokeWidth={2.4} />
                 </div>
               </div>
             </div>
