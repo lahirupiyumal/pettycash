@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../api/axios';
+import { UploadCloud, FileSpreadsheet } from 'lucide-react';
 
 export default function ExcelImportForm({ onImportSuccess }) {
   const [file, setFile] = useState(null);
@@ -121,21 +122,38 @@ export default function ExcelImportForm({ onImportSuccess }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-8">
-      <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-        <h3 className="font-semibold text-gray-800">Import Transactions from Excel</h3>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8 max-w-4xl mx-auto">
+      <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 text-blue-600 shadow-inner">
+            <UploadCloud className="h-5 w-5" strokeWidth={2} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">Import Excel Data</h3>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Petty Cash Records</p>
+          </div>
+        </div>
       </div>
       
-      <div className="p-8">
-        <div className="mb-6">
-          <p className="text-gray-600 mb-2">
-            Upload the Regional Petty Cash Excel file.
-            Make sure the columns exactly match the standard template format.
+      <div className="p-8 bg-slate-50/50">
+        <div className="mb-8 max-w-2xl">
+          <p className="text-sm font-medium text-slate-600 leading-relaxed">
+            Upload your Regional Petty Cash Excel file here. Ensure your document strictly follows the standard template format with matching column headers to guarantee a successful import.
           </p>
         </div>
 
-        {error && <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">{error}</div>}
-        {success && <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg border border-green-200">{success}</div>}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200 text-sm font-semibold flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {success}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div 
@@ -145,22 +163,32 @@ export default function ExcelImportForm({ onImportSuccess }) {
           >
             <label 
               htmlFor="dropzone-file" 
-              className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors ${file ? 'border-blue-400 bg-blue-50' : 'border-gray-300'}`}
+              className={`group flex flex-col items-center justify-center w-full h-72 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 ${
+                file 
+                  ? 'border-blue-500 bg-gradient-to-b from-blue-50/50 to-indigo-50/50 shadow-inner shadow-blue-100' 
+                  : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50'
+              }`}
             >
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg className={`w-10 h-10 mb-3 ${file ? 'text-blue-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
+              <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                <div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-full transition-transform duration-300 ${file ? 'bg-blue-100 scale-110' : 'bg-slate-100 group-hover:scale-110 group-hover:bg-blue-50'}`}>
+                  {file ? (
+                    <FileSpreadsheet className="h-8 w-8 text-blue-600" strokeWidth={1.5} />
+                  ) : (
+                    <UploadCloud className="h-8 w-8 text-slate-400 group-hover:text-blue-500 transition-colors" strokeWidth={1.5} />
+                  )}
+                </div>
+                
                 {file ? (
-                  <>
-                    <p className="mb-2 text-sm text-gray-700 font-semibold">Selected file: {file.name}</p>
-                    <p className="text-xs text-gray-500">Click or drag and drop to change file</p>
-                  </>
+                  <div className="space-y-1">
+                    <p className="text-base font-bold text-slate-900">{file.name}</p>
+                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">Ready to process</p>
+                    <p className="text-[11px] text-slate-400 mt-2">Click or drag here to choose a different file</p>
+                  </div>
                 ) : (
-                  <>
-                    <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                    <p className="text-xs text-gray-500">XLSX, XLS or CSV (MAX. 10MB)</p>
-                  </>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-slate-700"><span className="text-blue-600 font-bold">Click to browse</span> or drag and drop</p>
+                    <p className="text-xs font-medium text-slate-400 uppercase tracking-widest pt-1">XLSX, XLS or CSV (MAX. 10MB)</p>
+                  </div>
                 )}
               </div>
               <input 
@@ -173,13 +201,23 @@ export default function ExcelImportForm({ onImportSuccess }) {
             </label>
           </div>
           
-          <div className="mt-6 flex justify-end">
+          <div className="mt-8 flex justify-end pt-6 border-t border-slate-200">
             <button 
               type="submit" 
               disabled={!file || loading}
-              className="bg-blue-600 text-white font-medium py-2.5 px-6 rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+              className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-900/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-900/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:pointer-events-none disabled:opacity-50 ring-1 ring-white/10"
             >
-              {loading ? 'Processing...' : 'Process File'}
+              {loading ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                  <span>Processing File...</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" strokeWidth={2.5} />
+                  <span>Import Data</span>
+                </>
+              )}
             </button>
           </div>
         </form>

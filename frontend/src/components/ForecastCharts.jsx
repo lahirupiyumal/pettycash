@@ -97,47 +97,63 @@ export default function ForecastCharts({ records = [] }) {
   }, [records]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {/* Cash In Hand Forecast */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-3 py-2.5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-          <h3 className="text-sm font-bold text-slate-800">Cash In Hand Forecast</h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">Historical values with forecast and confidence bounds.</p>
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-1.5 rounded-full bg-blue-500" />
+            <div>
+              <h3 className="text-lg font-black tracking-tight text-slate-900">Cash In Hand Forecast</h3>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Historical values with linear forecast</p>
+            </div>
+          </div>
         </div>
-        <div className="p-3">
+        <div className="p-6">
           {forecastData.cashInHand.length === 0 ? (
-            <p className="text-center text-slate-500 py-6 text-sm">No forecast data available.</p>
+            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-sm font-semibold text-slate-500">No forecast data available.</p>
+            </div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={forecastData.cashInHand} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={forecastData.cashInHand} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
                   dataKey="dateLabel"
-                  tick={{ fontSize: 9, fill: '#475569' }}
-                  angle={-30}
-                  textAnchor="end"
-                  height={42}
+                  tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  dy={5}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: '#475569' }}
+                  tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
                   tickFormatter={formatNumber}
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
                 />
                 <Tooltip
                   formatter={formatTooltip}
                   contentStyle={{
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
                   }}
+                  itemStyle={{ padding: '2px 0', fontWeight: 600 }}
+                  labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" />
                 <Line
                   type="monotone"
                   dataKey="value"
                   stroke={COLORS.values}
                   name="Values"
-                  strokeWidth={2}
-                  dot={false}
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
                 />
                 <Line
                   type="monotone"
@@ -152,19 +168,19 @@ export default function ForecastCharts({ records = [] }) {
                   type="monotone"
                   dataKey="lowerBound"
                   stroke={COLORS.lowerBound}
-                  name="Lower Confidence Bound"
+                  name="Lower Confidence"
                   strokeWidth={1}
                   dot={false}
-                  opacity={0.6}
+                  opacity={0.4}
                 />
                 <Line
                   type="monotone"
                   dataKey="upperBound"
                   stroke={COLORS.upperBound}
-                  name="Upper Confidence Bound"
+                  name="Upper Confidence"
                   strokeWidth={1}
                   dot={false}
-                  opacity={0.6}
+                  opacity={0.4}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -174,44 +190,60 @@ export default function ForecastCharts({ records = [] }) {
 
       {/* Invoice Amount Forecast */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-3 py-2.5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-          <h3 className="text-sm font-bold text-slate-800">Invoice Amount Forecast</h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">Historical values with forecast and confidence bounds.</p>
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-1.5 rounded-full bg-orange-500" />
+            <div>
+              <h3 className="text-lg font-black tracking-tight text-slate-900">Invoice Amount Forecast</h3>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Historical values with linear forecast</p>
+            </div>
+          </div>
         </div>
-        <div className="p-3">
+        <div className="p-6">
           {forecastData.invoiceAmount.length === 0 ? (
-            <p className="text-center text-slate-500 py-6 text-sm">No forecast data available.</p>
+            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-sm font-semibold text-slate-500">No forecast data available.</p>
+            </div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={forecastData.invoiceAmount} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={forecastData.invoiceAmount} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
                   dataKey="dateLabel"
-                  tick={{ fontSize: 9, fill: '#475569' }}
-                  angle={-30}
-                  textAnchor="end"
-                  height={42}
+                  tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  dy={5}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: '#475569' }}
+                  tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
                   tickFormatter={formatNumber}
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
                 />
                 <Tooltip
                   formatter={formatTooltip}
                   contentStyle={{
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
                   }}
+                  itemStyle={{ padding: '2px 0', fontWeight: 600 }}
+                  labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" />
                 <Line
                   type="monotone"
                   dataKey="value"
                   stroke={COLORS.values}
                   name="Values"
-                  strokeWidth={2}
-                  dot={false}
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
                 />
                 <Line
                   type="monotone"
@@ -226,26 +258,25 @@ export default function ForecastCharts({ records = [] }) {
                   type="monotone"
                   dataKey="lowerBound"
                   stroke={COLORS.lowerBound}
-                  name="Lower Confidence Bound"
+                  name="Lower Confidence"
                   strokeWidth={1}
                   dot={false}
-                  opacity={0.6}
+                  opacity={0.4}
                 />
                 <Line
                   type="monotone"
                   dataKey="upperBound"
                   stroke={COLORS.upperBound}
-                  name="Upper Confidence Bound"
+                  name="Upper Confidence"
                   strokeWidth={1}
                   dot={false}
-                  opacity={0.6}
+                  opacity={0.4}
                 />
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
       </div>
-
     </div>
   );
 }
