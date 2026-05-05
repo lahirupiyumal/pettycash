@@ -25,7 +25,7 @@ function formatTooltip(value) {
   return [Number(value).toLocaleString('en-LK'), ''];
 }
 
-export default function ForecastCharts({ records = [] }) {
+export default function Forecast({ records = [] }) {
   const forecastData = useMemo(() => {
     if (!records.length) return { cashInHand: [], invoiceAmount: [], utilization: [] };
 

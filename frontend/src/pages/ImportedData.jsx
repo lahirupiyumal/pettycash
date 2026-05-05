@@ -78,8 +78,8 @@ export default function ImportedDataPage({ loading, error, onDeleteSuccess, refr
             <Layers className="h-6 w-6 text-white" strokeWidth={1.8} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Imported Excel Data</p>
-            <h2 className="text-lg font-black text-slate-900">Import File Manager</h2>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Data Management</p>
+            <h2 className="text-lg font-black text-slate-900">Imported Data</h2>
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5">

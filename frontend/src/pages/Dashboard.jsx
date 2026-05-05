@@ -3,15 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSummary } from '../hooks/useSummary';
 import { useRecords } from '../hooks/useRecords';
-import SummaryCards from '../components/SummaryCards';
-import RecordTable from '../components/RecordTable';
-import ExcelImportForm from '../components/ExcelImportForm';
-import VarianceDashboard from '../components/VarianceDashboard';
-import CashInHandChart from '../components/CashInHandChart';
-import MonthlySummaryTable from '../components/MonthlySummaryTable';
-import OverviewDashboard from '../components/OverviewDashboard';
+import ImportExcelFile from '../components/ImportExcelFile';
+import Variance from '../components/Variance';
+import CashInHand from '../components/CashInHand';
+import MonthlySummary from '../components/MonthlySummary';
+import Overview from '../components/Overview';
 import ImportedDataPage from './ImportedData';
-import ForecastCharts from '../components/ForecastCharts';
+import Forecast from '../components/Forecast';
+import InvoiceTotal from '../components/InvoiceTotal';
+import CostCenters from '../components/CostCenters';
 import {
   BarChart3,
   FileSpreadsheet,
@@ -58,7 +58,7 @@ export default function Dashboard() {
     { label: 'Import Excel File', icon: Upload },
   ];
 
-  const pageTitle = activeTab === 'OVERVIEW' ? 'Dashboard Overview' : activeTab;
+  const pageTitle = activeTab;
 
   return (
     <div className="min-h-screen flex bg-slate-100 text-slate-900">
@@ -203,7 +203,7 @@ export default function Dashboard() {
         <main className="flex-1 p-5 md:p-8 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
             {activeTab === 'Import Excel File' ? (
-              <ExcelImportForm onImportSuccess={handleImportSuccess} />
+              <ImportExcelFile onImportSuccess={handleImportSuccess} />
             ) : activeTab === 'Imported Data' ? (
               <ImportedDataPage
                 records={records || []}
@@ -219,7 +219,7 @@ export default function Dashboard() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
-                <ForecastCharts records={records || []} />
+                <Forecast records={records || []} />
               )
             ) : activeTab === 'OVERVIEW' ? (
               recordsError ? (
@@ -229,7 +229,7 @@ export default function Dashboard() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
-                <OverviewDashboard records={records || []} />
+                <Overview records={records || []} />
               )
             ) : activeTab === 'CASH IN HAND' ? (
               recordsError ? (
@@ -239,7 +239,7 @@ export default function Dashboard() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
-                <CashInHandChart records={records || []} />
+                <CashInHand records={records || []} />
               )
             ) : activeTab === 'Monthly Summary' ? (
               recordsError ? (
@@ -249,31 +249,23 @@ export default function Dashboard() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
-                <MonthlySummaryTable records={records || []} />
+                <MonthlySummary records={records || []} />
               )
             ) : activeTab === 'VARIANCE' ? (
-              <VarianceDashboard records={records} />
+              <Variance records={records} />
+            ) : activeTab === 'Cost Centers' ? (
+              <CostCenters
+                records={records}
+                recordsError={recordsError}
+                recordsLoading={recordsLoading}
+              />
             ) : (
-              <>
-                <SummaryCards summary={summary} />
-                
-                <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <h3 className="font-semibold text-gray-800">Regional Petty Cash Records</h3>
-                    <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded">{records?.length || 0} Records</span>
-                  </div>
-                  <div className="p-0">
-                    {recordsError && <p className="text-red-500 text-sm m-6 bg-red-50 p-3 rounded">{recordsError}</p>}
-                    {recordsLoading ? (
-                      <div className="flex justify-center items-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      </div>
-                    ) : (
-                      <RecordTable records={records} />
-                    )}
-                  </div>
-                </div>
-              </>
+              <InvoiceTotal
+                summary={summary}
+                records={records}
+                recordsError={recordsError}
+                recordsLoading={recordsLoading}
+              />
             )}
           </div>
         </main>

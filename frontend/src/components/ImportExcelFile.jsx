@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../api/axios';
 import { UploadCloud, FileSpreadsheet } from 'lucide-react';
 
-export default function ExcelImportForm({ onImportSuccess }) {
+export default function ImportExcelFile({ onImportSuccess }) {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -129,7 +129,7 @@ export default function ExcelImportForm({ onImportSuccess }) {
             <UploadCloud className="h-5 w-5" strokeWidth={2} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-900 tracking-tight">Import Excel Data</h3>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">Import Excel File</h3>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Petty Cash Records</p>
           </div>
         </div>

@@ -25,7 +25,7 @@ function formatCardNumber(value) {
   return Number(value || 0).toLocaleString('en-US');
 }
 
-export default function OverviewDashboard({ records = [] }) {
+export default function Overview({ records = [] }) {
   const [selectedYear, setSelectedYear] = useState('All');
 
   const availableYears = useMemo(() => {

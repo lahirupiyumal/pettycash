@@ -7,21 +7,18 @@ export default function SummaryCards({ summary }) {
       value: summary.totalCredit, 
       icon: TrendingUp,
       iconBg: 'bg-emerald-100 text-emerald-600',
-      trend: 'text-emerald-500'
     },
     { 
       label: 'Total Debit', 
       value: summary.totalDebit, 
       icon: TrendingDown,
       iconBg: 'bg-rose-100 text-rose-600',
-      trend: 'text-rose-500'
     },
     { 
       label: 'Net Balance', 
       value: summary.balance, 
       icon: Wallet,
       iconBg: 'bg-blue-100 text-blue-600',
-      trend: 'text-blue-500'
     },
   ];
 
@@ -44,11 +41,6 @@ export default function SummaryCards({ summary }) {
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${c.iconBg}`}>
                 <Icon className="h-6 w-6" strokeWidth={2.5} />
               </div>
-            </div>
-            
-            <div className="mt-4 flex items-center gap-2 text-sm font-semibold">
-              <span className={c.trend}>Current Period</span>
-              <span className="text-slate-400">Total Calculation</span>
             </div>
           </div>
         );
