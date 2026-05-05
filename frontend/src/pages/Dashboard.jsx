@@ -62,45 +62,104 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen flex bg-slate-100 text-slate-900">
-      <aside className="hidden lg:flex w-72 bg-slate-950 text-white flex-col shadow-xl">
-        <div className="px-7 py-5 border-b border-white/10 bg-slate-900 flex items-center justify-center">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg" alt="SLT Logo" className="h-10 w-10 object-contain" />
+      <aside className="hidden lg:flex w-[280px] bg-[#0a0f1c] text-slate-300 flex-col shadow-2xl border-r border-slate-800/60 relative z-20">
+        {/* Subtle top glow */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-blue-500/10 blur-[60px] pointer-events-none" />
+
+        {/* Logo Section */}
+        <div className="relative flex items-center justify-center py-8 px-6 border-b border-slate-800/60">
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg"
+            alt="SLT Logo"
+            className="h-16 w-auto object-contain drop-shadow-md"
+          />
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-          <p className="px-3 pb-3 text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">Navigation</p>
-          {menuItems.map(({ label, icon: Icon }) => (
-            <button 
-              key={label} 
-              onClick={() => setActiveTab(label)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 border ${
-                activeTab === label
-                  ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-950/20' 
-                  : 'text-slate-300 border-transparent hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              <span className="flex flex-1 items-center justify-between">
-                {label}
-                <span
-                  className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                    activeTab === label ? 'bg-orange-300' : 'bg-slate-700'
-                  }`}
-                ></span>
-              </span>
-            </button>
-          ))}
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-7 custom-scrollbar">
+          {/* Main Menu Group */}
+          <div>
+            <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+              Main Menu
+            </p>
+            <div className="space-y-1">
+              {menuItems.slice(0, 7).map(({ label, icon: Icon }) => {
+                const isActive = activeTab === label;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => setActiveTab(label)}
+                    className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/10'
+                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                    <span className="flex-1 text-left tracking-wide">{label}</span>
+                    {isActive && (
+                      <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Data Management Group */}
+          <div>
+            <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+              Data Management
+            </p>
+            <div className="space-y-1">
+              {menuItems.slice(7).map(({ label, icon: Icon }) => {
+                const isActive = activeTab === label;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => setActiveTab(label)}
+                    className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-white/10'
+                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                    <span className="flex-1 text-left tracking-wide">{label}</span>
+                    {isActive && (
+                      <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </nav>
 
-        <div className="px-4 pb-5 pt-3 mt-auto border-t border-white/10 bg-slate-950">
-          <button
-            onClick={logout}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 transition-colors hover:bg-red-500 hover:text-white"
-          >
-            <LogOut className="h-4 w-4" />
-            Log Out
-          </button>
+        {/* User Profile & Logout */}
+        <div className="p-4 border-t border-slate-800/60 bg-[#070b14]">
+          <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-3 flex flex-col gap-3">
+            <div className="flex items-center gap-3 px-1">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-black text-sm shadow-inner ring-1 ring-white/20">
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold text-slate-200 truncate">{user?.name || 'User'}</p>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{user?.role || 'User'}</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={logout}
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-2.5 text-xs font-bold text-red-400 transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-500/25 ring-1 ring-red-500/20 hover:ring-red-500"
+            >
+              <LogOut className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.5} />
+              <span>Secure Sign Out</span>
+            </button>
+          </div>
         </div>
       </aside>
+
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white/95 backdrop-blur border-b border-slate-200 px-5 md:px-8 py-4 flex flex-wrap gap-4 justify-between items-center z-10 shadow-sm">
