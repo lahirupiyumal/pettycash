@@ -9,7 +9,7 @@ const MONTHS = [
 
 const VARIANCE_STATUS_COLORS = ['#2563eb', '#f97316'];
 
-export default function VarianceDashboard({ records }) {
+export default function Variance({ records }) {
   const currentYear = new Date().getFullYear();
   
   const [selectedYear, setSelectedYear] = useState(currentYear);

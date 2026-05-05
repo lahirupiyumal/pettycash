@@ -53,7 +53,7 @@ function normalizeYear(yearValue) {
   return Number.isFinite(year) ? year : null;
 }
 
-export default function MonthlySummaryTable({ records = [] }) {
+export default function MonthlySummary({ records = [] }) {
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [selectedYear, setSelectedYear] = useState('ALL');

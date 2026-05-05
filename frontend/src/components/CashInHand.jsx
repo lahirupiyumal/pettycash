@@ -40,7 +40,7 @@ function normalizeMonth(monthValue) {
   return MONTH_ALIASES[normalized] || null;
 }
 
-export default function CashInHandChart({ records = [] }) {
+export default function CashInHand({ records = [] }) {
   const currentYear = new Date().getFullYear();
 
   const availableYears = useMemo(() => {
