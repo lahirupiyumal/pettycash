@@ -16,13 +16,13 @@ import {
   BarChart3,
   FileSpreadsheet,
   Gauge,
+  Grid2x2,
   HandCoins,
   LayoutDashboard,
   LogOut,
   PieChart,
   ReceiptText,
   Upload,
-  WalletCards,
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -52,7 +52,7 @@ export default function Dashboard() {
     { label: 'CASH IN HAND', icon: HandCoins },
     { label: 'VARIANCE', icon: PieChart },
     { label: 'Monthly Summary', icon: BarChart3 },
-    { label: 'Cost Centers', icon: WalletCards },
+    { label: 'Cost Centers', icon: Grid2x2 },
     { label: 'Forecast', icon: Gauge },
     { label: 'Imported Data', icon: FileSpreadsheet },
     { label: 'Import Excel File', icon: Upload },
@@ -65,8 +65,8 @@ export default function Dashboard() {
       <aside className="hidden lg:flex w-72 bg-slate-950 text-white flex-col shadow-xl">
         <div className="px-7 py-7 border-b border-white/10 bg-slate-900">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-950/20">
-              <WalletCards className="h-6 w-6" />
+            <div className="h-11 w-11 flex-shrink-0 flex items-center justify-center">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg" alt="SLT Logo" className="h-10 w-10 object-contain" />
             </div>
             <div>
               <p className="text-xs font-semibold tracking-[0.14em] text-slate-400 uppercase">Finance Portal</p>

@@ -30,9 +30,7 @@ export default function Login() {
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center justify-center">
         <div className="w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/90 shadow-2xl shadow-slate-900/30 backdrop-blur">
           <div className="border-b border-white/10 bg-slate-900 px-8 py-7">
-            <p className="text-xs font-semibold tracking-[0.16em] text-blue-300 uppercase">Finance Portal</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-white">Welcome back</h2>
-            <p className="mt-2 text-sm text-slate-300">Sign in to your Petty Cash account</p>
+            <h2 className="text-3xl font-black tracking-tight text-white">Welcome back</h2>
           </div>
 
           <div className="px-8 py-8">
