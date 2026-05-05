@@ -2,15 +2,12 @@ import { useMemo } from 'react';
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ComposedChart,
 } from 'recharts';
 
 const COLORS = {
@@ -100,29 +97,29 @@ export default function ForecastCharts({ records = [] }) {
   }, [records]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Cash In Hand Forecast */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-          <h3 className="text-lg font-bold text-slate-800">Cash In Hand Forecast</h3>
-          <p className="text-sm text-slate-500 mt-1">Historical values with forecast and confidence bounds.</p>
+        <div className="px-3 py-2.5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+          <h3 className="text-sm font-bold text-slate-800">Cash In Hand Forecast</h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">Historical values with forecast and confidence bounds.</p>
         </div>
-        <div className="p-6">
+        <div className="p-3">
           {forecastData.cashInHand.length === 0 ? (
-            <p className="text-center text-slate-500 py-12">No forecast data available.</p>
+            <p className="text-center text-slate-500 py-6 text-sm">No forecast data available.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={180}>
               <LineChart data={forecastData.cashInHand} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   dataKey="dateLabel"
-                  tick={{ fontSize: 12, fill: '#475569' }}
-                  angle={-45}
+                  tick={{ fontSize: 9, fill: '#475569' }}
+                  angle={-30}
                   textAnchor="end"
-                  height={80}
+                  height={42}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#475569' }}
+                  tick={{ fontSize: 10, fill: '#475569' }}
                   tickFormatter={formatNumber}
                 />
                 <Tooltip
@@ -177,26 +174,26 @@ export default function ForecastCharts({ records = [] }) {
 
       {/* Invoice Amount Forecast */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-          <h3 className="text-lg font-bold text-slate-800">Invoice Amount Forecast</h3>
-          <p className="text-sm text-slate-500 mt-1">Historical values with forecast and confidence bounds.</p>
+        <div className="px-3 py-2.5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+          <h3 className="text-sm font-bold text-slate-800">Invoice Amount Forecast</h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">Historical values with forecast and confidence bounds.</p>
         </div>
-        <div className="p-6">
+        <div className="p-3">
           {forecastData.invoiceAmount.length === 0 ? (
-            <p className="text-center text-slate-500 py-12">No forecast data available.</p>
+            <p className="text-center text-slate-500 py-6 text-sm">No forecast data available.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={180}>
               <LineChart data={forecastData.invoiceAmount} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   dataKey="dateLabel"
-                  tick={{ fontSize: 12, fill: '#475569' }}
-                  angle={-45}
+                  tick={{ fontSize: 9, fill: '#475569' }}
+                  angle={-30}
                   textAnchor="end"
-                  height={80}
+                  height={42}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#475569' }}
+                  tick={{ fontSize: 10, fill: '#475569' }}
                   tickFormatter={formatNumber}
                 />
                 <Tooltip
@@ -249,46 +246,6 @@ export default function ForecastCharts({ records = [] }) {
         </div>
       </div>
 
-      {/* Utilization Forecast */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-          <h3 className="text-lg font-bold text-slate-800">Utilization Forecast</h3>
-          <p className="text-sm text-slate-500 mt-1">Historical values and forecast comparison.</p>
-        </div>
-        <div className="p-6">
-          {forecastData.utilization.length === 0 ? (
-            <p className="text-center text-slate-500 py-12">No forecast data available.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={forecastData.utilization} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis
-                  dataKey="dateLabel"
-                  tick={{ fontSize: 12, fill: '#475569' }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#475569' }}
-                  tickFormatter={formatNumber}
-                />
-                <Tooltip
-                  formatter={formatTooltip}
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="value" fill={COLORS.values} name="Values" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="forecast" fill={COLORS.forecast} name="Forecast" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
