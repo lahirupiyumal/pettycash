@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -26,8 +26,23 @@ function formatCardNumber(value) {
 }
 
 export default function OverviewDashboard({ records = [] }) {
+  const [selectedYear, setSelectedYear] = useState('All');
+
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    records.forEach((r) => {
+      if (r.year) years.add(r.year);
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [records]);
+
+  const filteredRecords = useMemo(() => {
+    if (selectedYear === 'All') return records;
+    return records.filter((r) => String(r.year) === String(selectedYear));
+  }, [records, selectedYear]);
+
   const totals = useMemo(() => {
-    return records.reduce(
+    return filteredRecords.reduce(
       (acc, record) => {
         acc.floatAmount += Number(record.floatAmount) || 0;
         acc.cashInHand += Number(record.cashInHand) || 0;
@@ -44,12 +59,12 @@ export default function OverviewDashboard({ records = [] }) {
         variance: 0,
       }
     );
-  }, [records]);
+  }, [filteredRecords]);
 
   const regionTrendData = useMemo(() => {
     const regionMap = new Map();
 
-    records.forEach((record) => {
+    filteredRecords.forEach((record) => {
       const region = String(record.region || '').trim();
       if (!region || region.toLowerCase() === 'region') return;
 
@@ -67,17 +82,17 @@ export default function OverviewDashboard({ records = [] }) {
     });
 
     return [...regionMap.values()].sort((a, b) => a.region.localeCompare(b.region));
-  }, [records]);
+  }, [filteredRecords]);
 
   const varianceStatusData = useMemo(() => {
-    const balanced = records.filter((record) => {
+    const balanced = filteredRecords.filter((record) => {
       const variance = Number(record.variance) || 0;
       const status = String(record.varianceStatus || '').toLowerCase().trim();
       return variance === 0 || status === 'balanced';
     }).length;
 
-    const nonZeroVariance = records.length - balanced;
-    const total = records.length;
+    const nonZeroVariance = filteredRecords.length - balanced;
+    const total = filteredRecords.length;
 
     return [
       {
@@ -91,7 +106,7 @@ export default function OverviewDashboard({ records = [] }) {
         percent: total > 0 ? ((nonZeroVariance / total) * 100).toFixed(2) : '0.00',
       },
     ];
-  }, [records]);
+  }, [filteredRecords]);
 
   const cards = [
     { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3 },
@@ -103,6 +118,23 @@ export default function OverviewDashboard({ records = [] }) {
 
   return (
     <div className="space-y-8 rounded-[2rem] bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_34%,#ffffff_100%)] p-4 sm:p-6">
+      <div className="flex justify-end">
+        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+          <label htmlFor="yearFilter" className="text-sm font-semibold text-slate-600">Year:</label>
+          <select
+            id="yearFilter"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="bg-transparent text-sm font-bold text-slate-800 focus:outline-none cursor-pointer"
+          >
+            <option value="All">All Time</option>
+            {availableYears.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((card) => (
           <div
@@ -213,11 +245,7 @@ export default function OverviewDashboard({ records = [] }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 shadow-sm">
-        <p className="text-sm text-slate-600">
-          Tip: use the side menu to switch between overview, cash, variance, and monthly summaries.
-        </p>
-      </div>
+
     </div>
   );
 }
