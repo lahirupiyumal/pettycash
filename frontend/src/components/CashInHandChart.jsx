@@ -79,28 +79,26 @@ export default function CashInHandChart({ records = [] }) {
   const hasDataForYear = monthlyCashInHandData.some((item) => item.total > 0);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white flex flex-wrap gap-4 items-center justify-between">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center">
-            <HandCoins className="h-5 w-5" />
-          </div>
+          <div className="h-6 w-1.5 rounded-full bg-emerald-500" />
           <div>
-            <h3 className="text-lg font-bold text-slate-800">Monthly Cash In Hand Amount</h3>
-            <p className="text-sm text-slate-500 mt-1">Year-wise cash position across all months.</p>
+            <h3 className="text-lg font-black tracking-tight text-slate-900">Monthly Cash In Hand</h3>
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Year-wise cash position</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-blue-700" />
-          <label htmlFor="cash-in-hand-year" className="text-sm font-semibold text-slate-700">
-            Select Year
+        <div className="flex items-center gap-3 bg-slate-50 px-5 py-2.5 rounded-xl border border-slate-200">
+          <CalendarDays className="h-4 w-4 text-emerald-600" />
+          <label htmlFor="cash-in-hand-year" className="text-xs font-bold uppercase tracking-widest text-slate-500">
+            Year:
           </label>
           <select
             id="cash-in-hand-year"
             value={selectedYear}
             onChange={(event) => setSelectedYear(Number(event.target.value))}
-            className="px-3 py-2 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="bg-transparent text-sm font-black text-slate-800 focus:outline-none cursor-pointer"
           >
             {availableYears.map((year) => (
               <option key={year} value={year}>
@@ -113,22 +111,41 @@ export default function CashInHandChart({ records = [] }) {
 
       <div className="p-6">
         {!hasDataForYear ? (
-          <p className="text-sm text-slate-500 py-12 text-center">No cash in hand data available for the selected year.</p>
+          <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+            <p className="text-sm font-semibold text-slate-500">No cash in hand data available for {selectedYear}.</p>
+          </div>
         ) : (
-          <ResponsiveContainer width="100%" height={440}>
+          <ResponsiveContainer width="100%" height={380}>
             <BarChart data={monthlyCashInHandData} margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#475569' }} />
-              <YAxis tick={{ fontSize: 12, fill: '#475569' }} tickFormatter={(value) => `${Number(value).toLocaleString()}`} />
-              <Tooltip
-                formatter={(value) => [Number(value).toLocaleString('en-LK'), 'Total']}
-                contentStyle={{
-                  borderRadius: '12px',
-                  border: '1px solid #cbd5e1',
-                  boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
-                }}
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis 
+                dataKey="month" 
+                tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                tickLine={false}
+                axisLine={{ stroke: '#e2e8f0' }}
+                dy={10} 
               />
-              <Bar dataKey="total" fill="#2563eb" radius={[6, 6, 0, 0]} />
+              <YAxis 
+                tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} 
+                tickFormatter={(value) => `${Number(value).toLocaleString()}`} 
+                tickLine={false}
+                axisLine={false}
+                dx={-10}
+              />
+              <Tooltip
+                formatter={(value) => [Number(value).toLocaleString('en-LK'), <span className="font-semibold text-slate-500">Cash In Hand</span>]}
+                contentStyle={{
+                  borderRadius: '16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(8px)'
+                }}
+                itemStyle={{ padding: '2px 0', fontWeight: 800, color: '#10b981' }}
+                labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
+              />
+              <Bar dataKey="total" fill="#10b981" radius={[6, 6, 0, 0]} barSize={40} />
             </BarChart>
           </ResponsiveContainer>
         )}

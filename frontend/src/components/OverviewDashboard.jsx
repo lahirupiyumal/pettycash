@@ -117,15 +117,15 @@ export default function OverviewDashboard({ records = [] }) {
   ];
 
   return (
-    <div className="space-y-8 rounded-[2rem] bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_34%,#ffffff_100%)] p-4 sm:p-6">
+    <div className="space-y-8 rounded-[2rem] p-4 sm:p-6 bg-transparent">
       <div className="flex justify-end">
-        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
-          <label htmlFor="yearFilter" className="text-sm font-semibold text-slate-600">Year:</label>
+        <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200">
+          <label htmlFor="yearFilter" className="text-xs font-bold uppercase tracking-widest text-slate-500">Year:</label>
           <select
             id="yearFilter"
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
-            className="bg-transparent text-sm font-bold text-slate-800 focus:outline-none cursor-pointer"
+            className="bg-transparent text-sm font-black text-slate-800 focus:outline-none cursor-pointer"
           >
             <option value="All">All Time</option>
             {availableYears.map((year) => (
@@ -135,24 +135,26 @@ export default function OverviewDashboard({ records = [] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {cards.map((card) => (
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
+        {cards.map((card, index) => (
           <div
             key={card.label}
-            className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+            className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/50"
           >
-            <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: CARD_ACCENTS[[...cards].indexOf(card) % CARD_ACCENTS.length] }} />
-            <div className="px-5 py-4">
+            <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: CARD_ACCENTS[index % CARD_ACCENTS.length] }} />
+            <div className="px-5 py-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-slate-700 leading-snug min-h-[2.75rem]">{card.label}</p>
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.08em] text-blue-700">LKR</p>
-                  <p className="mt-2 text-[clamp(1.45rem,1.5vw,2.15rem)] font-black text-slate-900 leading-none whitespace-nowrap">
-                    {formatCardNumber(card.value)}
-                  </p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 leading-snug min-h-[2rem]">{card.label}</p>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">LKR</span>
+                    <p className="text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap">
+                      {formatCardNumber(card.value)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-200">
-                  <card.icon className="h-5 w-5" />
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600 ring-1 ring-slate-100">
+                  <card.icon className="h-5 w-5" strokeWidth={2} />
                 </div>
               </div>
             </div>
@@ -161,58 +163,70 @@ export default function OverviewDashboard({ records = [] }) {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
-            <div className="flex items-center justify-between gap-4">
+        <div className="xl:col-span-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 bg-white px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-1.5 rounded-full bg-blue-500" />
               <div>
-                <h3 className="text-lg font-black text-slate-800">Monthly Trend Chart</h3>
-                <p className="mt-1 text-sm text-slate-500">Region-wise comparison of float and utilization totals.</p>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">Regional Float vs Utilization</h3>
               </div>
-              <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
-                {regionTrendData.length} regions
-              </div>
+            </div>
+            <div className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
+              {regionTrendData.length} Regions
             </div>
           </div>
           <div className="p-6">
           {regionTrendData.length === 0 ? (
-            <p className="text-center text-slate-500 py-20">No trend data available.</p>
+            <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-sm font-semibold text-slate-500">No trend data available.</p>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={420}>
               <BarChart data={regionTrendData} margin={{ top: 20, right: 16, left: 8, bottom: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
                   dataKey="region"
                   angle={-38}
                   textAnchor="end"
                   height={100}
-                  tick={{ fontSize: 12, fill: '#475569' }}
+                  tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  dy={5}
                 />
-                <YAxis tick={{ fontSize: 12, fill: '#475569' }} tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${Math.round(value / 1000)}k`} dx={-10} />
                 <Tooltip
                   formatter={(value) => formatNumber(value)}
                   contentStyle={{
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
                   }}
+                  itemStyle={{ padding: '2px 0', fontWeight: 600 }}
+                  labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
                 />
-                <Legend />
-                <Bar dataKey="floatAmount" name="Sum of Float Amount" fill="#3b6ec2" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="utilization" name="Sum of Utilization" fill="#eb7f2f" radius={[4, 4, 0, 0]} />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                <Bar dataKey="floatAmount" name="Float Amount" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="utilization" name="Utilization" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
-            <h3 className="text-lg font-black text-slate-800">Variance Status</h3>
-            <p className="mt-1 text-sm text-slate-500">Balanced vs non-zero variance records.</p>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 bg-white px-6 py-5 flex items-center gap-3">
+            <div className="h-6 w-1.5 rounded-full bg-indigo-500" />
+            <h3 className="text-lg font-black tracking-tight text-slate-900">Variance Status Distribution</h3>
           </div>
           <div className="p-6">
           {varianceStatusData.every((item) => item.value === 0) ? (
-            <p className="text-center text-slate-500 py-20">No variance data available.</p>
+            <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-sm font-semibold text-slate-500">No variance data available.</p>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={420}>
               <PieChart>
@@ -221,31 +235,36 @@ export default function OverviewDashboard({ records = [] }) {
                   cx="50%"
                   cy="45%"
                   innerRadius={95}
-                  outerRadius={145}
+                  outerRadius={140}
                   dataKey="value"
                   label={({ percent }) => `${percent}%`}
+                  labelLine={false}
+                  stroke="none"
                 >
                   {varianceStatusData.map((entry, index) => (
-                    <Cell key={entry.name} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
+                    <Cell key={entry.name} fill={index === 0 ? '#10b981' : '#f43f5e'} />
                   ))}
                 </Pie>
                 <Tooltip
                   formatter={(value, name) => [`${value} records`, name]}
                   contentStyle={{
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
                   }}
+                  itemStyle={{ padding: '2px 0', fontWeight: 600 }}
+                  labelStyle={{ display: 'none' }}
                 />
-                <Legend verticalAlign="bottom" height={36} />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
           )}
           </div>
         </div>
       </div>
-
-
     </div>
   );
 }

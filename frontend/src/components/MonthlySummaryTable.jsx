@@ -143,18 +143,18 @@ export default function MonthlySummaryTable({ records = [] }) {
   }, [summaryRows]);
 
   return (
-    <div className="space-y-5">
-      <div className="bg-gradient-to-b from-white to-slate-50 rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label htmlFor="region-filter" className="block text-sm font-semibold text-slate-700 mb-2">
+            <label htmlFor="region-filter" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
               Select Region
             </label>
             <select
               id="region-filter"
               value={selectedRegion}
               onChange={(event) => setSelectedRegion(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm font-semibold text-slate-800 shadow-inner focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300"
             >
               <option value="ALL">All Regions</option>
               {availableRegions.map((region) => (
@@ -166,14 +166,14 @@ export default function MonthlySummaryTable({ records = [] }) {
           </div>
 
           <div>
-            <label htmlFor="month-filter" className="block text-sm font-semibold text-slate-700 mb-2">
+            <label htmlFor="month-filter" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
               Select Month
             </label>
             <select
               id="month-filter"
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm font-semibold text-slate-800 shadow-inner focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300"
             >
               <option value="ALL">All Months</option>
               {availableMonths.map((month) => (
@@ -185,14 +185,14 @@ export default function MonthlySummaryTable({ records = [] }) {
           </div>
 
           <div>
-            <label htmlFor="year-filter" className="block text-sm font-semibold text-slate-700 mb-2">
+            <label htmlFor="year-filter" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
               Select Year
             </label>
             <select
               id="year-filter"
               value={selectedYear}
               onChange={(event) => setSelectedYear(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm font-semibold text-slate-800 shadow-inner focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300"
             >
               <option value="ALL">All Years</option>
               {availableYears.map((year) => (
@@ -206,31 +206,40 @@ export default function MonthlySummaryTable({ records = [] }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5">
-
+        <div className="p-6">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="h-8 w-1.5 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
+            <h3 className="text-lg font-black tracking-tight text-slate-900">Monthly Performance Overview</h3>
+          </div>
           {chartData.length === 0 ? (
-            <p className="text-sm text-slate-500">No chart data available for the selected filters.</p>
+            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-sm font-semibold text-slate-500">No chart data available for the selected filters.</p>
+            </div>
           ) : (
-            <ResponsiveContainer width="100%" height={380}>
+            <ResponsiveContainer width="100%" height={400}>
               <BarChart data={chartData} margin={{ top: 16, right: 16, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="shortMonth" tick={{ fontSize: 12, fill: '#475569' }} />
-                <YAxis tickFormatter={(value) => Number(value).toLocaleString('en-LK')} tick={{ fontSize: 12, fill: '#475569' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="shortMonth" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} dy={10} />
+                <YAxis tickFormatter={(value) => Number(value).toLocaleString('en-LK')} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} tickLine={false} axisLine={false} dx={-10} />
                 <Tooltip
-                  formatter={(value, name) => [Number(value).toLocaleString('en-LK'), name]}
-                  labelFormatter={(label, payload) => (payload?.[0]?.payload?.month || label)}
+                  formatter={(value, name) => [Number(value).toLocaleString('en-LK'), <span className="font-semibold">{name}</span>]}
+                  labelFormatter={(label, payload) => <span className="font-bold text-slate-900 block mb-1">{(payload?.[0]?.payload?.month || label)}</span>}
                   contentStyle={{
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    boxShadow: '0 10px 20px rgba(15, 23, 42, 0.08)',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
                   }}
+                  itemStyle={{ padding: '2px 0' }}
                 />
-                <Legend wrapperStyle={{ paddingTop: '8px' }} />
-                <Bar dataKey="floatAmount" name="Float Amount" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="cashInHand" name="Cash In Hand" fill="#059669" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="invoiceAmount" name="Invoice Amount" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="utilization" name="Utilization" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="variance" name="Variance" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                <Bar dataKey="floatAmount" name="Float Amount" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
+                <Bar dataKey="cashInHand" name="Cash In Hand" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
+                <Bar dataKey="invoiceAmount" name="Invoice Amount" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={24} />
+                <Bar dataKey="utilization" name="Utilization" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={24} />
+                <Bar dataKey="variance" name="Variance" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           )}
