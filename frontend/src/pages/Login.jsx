@@ -26,13 +26,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] relative flex items-center justify-center px-4 py-10 text-slate-100 overflow-hidden">
-      {/* Background Glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#040812] px-4 py-10 text-slate-100">
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,#020617_0%,#07111f_46%,#081826_100%)]" />
+      <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(56,189,248,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.16)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <div className="absolute -left-32 top-0 h-full w-[34rem] -skew-x-12 bg-gradient-to-b from-sky-500/12 via-emerald-400/8 to-transparent" />
+      <div className="absolute -right-40 bottom-0 h-[115%] w-[32rem] -skew-x-12 bg-gradient-to-t from-indigo-500/14 via-blue-500/6 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-950/80 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-slate-950/90 to-transparent" />
 
       <div className="relative w-full max-w-md z-10">
-        {/* Logo outside the card for premium feel */}
         <div className="flex justify-center mb-8">
           <img
             src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg"
