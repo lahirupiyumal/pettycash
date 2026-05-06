@@ -43,7 +43,7 @@ export default function Login() {
 
         <div className="w-full overflow-hidden rounded-3xl border border-slate-800/60 bg-[#0a0f1c]/90 shadow-2xl shadow-black/50 backdrop-blur-xl">
           <div className="border-b border-slate-800/60 bg-slate-900/50 px-8 py-7 text-center">
-            <h2 className="text-3xl font-black tracking-tight text-white">Welcome back</h2>
+            <h2 className="text-3xl font-black tracking-tight text-white">Sign In</h2>
             <p className="mt-2 text-sm text-slate-400 font-medium">Finance Portal Access</p>
           </div>
 
