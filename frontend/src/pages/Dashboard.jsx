@@ -173,14 +173,19 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white/85 px-3 py-2 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-lg font-black text-blue-700 shadow-inner">
-                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+          <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white px-3 py-2 shadow-[0_14px_34px_-22px_rgba(15,23,42,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-20px_rgba(30,64,175,0.35)]">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-gradient-to-br from-blue-100/80 to-cyan-100/60 blur-xl" />
+            <div className="pointer-events-none absolute -bottom-8 -left-8 h-16 w-16 rounded-full bg-gradient-to-tr from-indigo-100/70 to-transparent blur-lg" />
+
+            <div className="relative flex items-center gap-3">
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50 via-white to-cyan-50 text-lg font-black text-blue-700 shadow-inner">
+                <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
               </div>
-              <div className="hidden md:block">
-                <p className="text-sm font-black text-slate-900">{user?.name || 'User'}</p>
-                <p className="text-xs font-semibold text-slate-500 capitalize">{user?.role || 'User'}</p>
+
+              <div className="hidden min-w-0 md:block">
+                <p className="truncate text-[15px] font-extrabold tracking-tight text-slate-900">{user?.name || 'User'}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{user?.role || 'User'}</p>
               </div>
             </div>
           </div>

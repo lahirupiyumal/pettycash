@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { CalendarDays, CalendarRange, MapPinned } from 'lucide-react';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -144,63 +145,75 @@ export default function MonthlySummary({ records = [] }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label htmlFor="region-filter" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+            <label htmlFor="region-filter" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
               Select Region
             </label>
-            <select
-              id="region-filter"
-              value={selectedRegion}
-              onChange={(event) => setSelectedRegion(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm font-semibold text-slate-800 shadow-inner focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300"
-            >
-              <option value="ALL">All Regions</option>
-              {availableRegions.map((region) => (
-                <option key={region} value={region}>
-                  {region}
-                </option>
-              ))}
-            </select>
+            <div className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20">
+              <MapPinned className="h-4 w-4 text-blue-600" />
+              <select
+                id="region-filter"
+                value={selectedRegion}
+                onChange={(event) => setSelectedRegion(event.target.value)}
+                className="w-full cursor-pointer appearance-none bg-transparent pr-6 text-sm font-black text-slate-800 outline-none"
+              >
+                <option value="ALL">All Regions</option>
+                {availableRegions.map((region) => (
+                  <option key={region} value={region}>
+                    {region}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none text-slate-500 transition-colors duration-300 group-focus-within:text-blue-600">⌄</span>
+            </div>
           </div>
 
           <div>
-            <label htmlFor="month-filter" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+            <label htmlFor="month-filter" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
               Select Month
             </label>
-            <select
-              id="month-filter"
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm font-semibold text-slate-800 shadow-inner focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300"
-            >
-              <option value="ALL">All Months</option>
-              {availableMonths.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
+            <div className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20">
+              <CalendarRange className="h-4 w-4 text-blue-600" />
+              <select
+                id="month-filter"
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+                className="w-full cursor-pointer appearance-none bg-transparent pr-6 text-sm font-black text-slate-800 outline-none"
+              >
+                <option value="ALL">All Months</option>
+                {availableMonths.map((month) => (
+                  <option key={month} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none text-slate-500 transition-colors duration-300 group-focus-within:text-blue-600">⌄</span>
+            </div>
           </div>
 
           <div>
-            <label htmlFor="year-filter" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+            <label htmlFor="year-filter" className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
               Select Year
             </label>
-            <select
-              id="year-filter"
-              value={selectedYear}
-              onChange={(event) => setSelectedYear(event.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm font-semibold text-slate-800 shadow-inner focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300"
-            >
-              <option value="ALL">All Years</option>
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+            <div className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20">
+              <CalendarDays className="h-4 w-4 text-blue-600" />
+              <select
+                id="year-filter"
+                value={selectedYear}
+                onChange={(event) => setSelectedYear(event.target.value)}
+                className="w-full cursor-pointer appearance-none bg-transparent pr-6 text-sm font-black text-slate-800 outline-none"
+              >
+                <option value="ALL">All Years</option>
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none text-slate-500 transition-colors duration-300 group-focus-within:text-blue-600">⌄</span>
+            </div>
           </div>
         </div>
       </div>
