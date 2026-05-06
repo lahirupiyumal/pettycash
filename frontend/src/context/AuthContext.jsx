@@ -3,7 +3,14 @@ import { createContext, useContext, useState } from 'react';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user')));
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      localStorage.removeItem('user');
+      return null;
+    }
+  });
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
   const login = (userData, tokenData) => {
@@ -16,7 +23,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.clear();
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   return <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>;
