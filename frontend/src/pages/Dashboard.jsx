@@ -167,9 +167,6 @@ export default function Dashboard() {
           <div className="absolute inset-y-0 right-0 w-80 bg-gradient-to-l from-blue-50/80 to-transparent pointer-events-none" />
           <div className="relative flex items-center justify-end">
           <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4 text-center">
-            <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100 md:flex">
-              <LayoutDashboard className="h-5 w-5" strokeWidth={2.4} />
-            </div>
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-blue-700">Petty Cash Control Center</p>
               <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">{pageTitle}</h1>
