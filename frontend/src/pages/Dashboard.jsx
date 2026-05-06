@@ -162,23 +162,31 @@ export default function Dashboard() {
 
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white/95 backdrop-blur border-b border-slate-200 px-5 md:px-8 py-4 flex flex-wrap gap-4 justify-between items-center z-10 shadow-sm">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.14em] text-blue-700 uppercase">Petty Cash Control Center</p>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
+        <header className="relative z-10 overflow-hidden border-b border-slate-200 bg-white px-5 py-4 shadow-sm md:px-8">
+          <div className="absolute inset-y-0 left-0 w-1 bg-blue-600" />
+          <div className="absolute inset-y-0 right-0 w-80 bg-gradient-to-l from-blue-50/80 to-transparent pointer-events-none" />
+          <div className="relative flex items-center justify-end">
+          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4 text-center">
+            <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100 md:flex">
+              <LayoutDashboard className="h-5 w-5" strokeWidth={2.4} />
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-blue-700">Petty Cash Control Center</p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">{pageTitle}</h1>
+            </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white/85 px-3 py-2 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-black text-lg">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-lg font-black text-blue-700 shadow-inner">
                 {user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               <div className="hidden md:block">
-                <p className="text-sm font-bold text-slate-800">{user?.name || 'User'}</p>
-                <p className="text-xs text-slate-500 capitalize">{user?.role || 'User'}</p>
+                <p className="text-sm font-black text-slate-900">{user?.name || 'User'}</p>
+                <p className="text-xs font-semibold text-slate-500 capitalize">{user?.role || 'User'}</p>
               </div>
             </div>
-            <div className="h-6 w-px bg-slate-200 mx-1"></div>
+          </div>
           </div>
         </header>
 
