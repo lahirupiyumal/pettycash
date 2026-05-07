@@ -132,63 +132,47 @@ export default function Dashboard() {
                   </button>
                 );
               })}
+              
+              {/* Logout Button */}
+              <button
+                onClick={logout}
+                className="group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 bg-red-500/15 text-red-400 hover:bg-red-500/25 hover:text-red-300 shadow-sm hover:shadow-md mt-2"
+              >
+                <LogOut className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" strokeWidth={2.5} />
+                <span className="flex-1 text-left tracking-wide">Logout</span>
+              </button>
             </div>
           </div>
         </nav>
-
-        {/* User Profile & Logout */}
-        <div className="p-4 border-t border-slate-800/60 bg-[#070b14]">
-          <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-3 flex flex-col gap-3">
-            <div className="flex items-center gap-3 px-1">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-black text-sm shadow-inner ring-1 ring-white/20">
-                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-slate-200 truncate">{user?.name || 'User'}</p>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{user?.role || 'User'}</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={logout}
-              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-2.5 text-xs font-bold text-red-400 transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-500/25 ring-1 ring-red-500/20 hover:ring-red-500"
-            >
-              <LogOut className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" strokeWidth={2.5} />
-              <span>Secure Sign Out</span>
-            </button>
-          </div>
-        </div>
       </aside>
 
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="relative z-10 overflow-hidden border-b border-slate-200 bg-white px-5 py-4 shadow-sm md:px-8">
-          <div className="absolute inset-y-0 left-0 w-1 bg-blue-600" />
-          <div className="absolute inset-y-0 right-0 w-80 bg-gradient-to-l from-blue-50/80 to-transparent pointer-events-none" />
-          <div className="relative flex items-center justify-end">
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-4 text-center">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-blue-700">Petty Cash Control Center</p>
-              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">{pageTitle}</h1>
+        <header className="relative z-10 border-b border-slate-100 bg-white px-5 py-3 md:px-8">
+          <div className="relative flex items-center justify-between gap-4">
+            {/* Center: Title */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-0.5">Dashboard</p>
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
             </div>
-          </div>
-          
-          <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white px-3 py-2 shadow-[0_14px_34px_-22px_rgba(15,23,42,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-20px_rgba(30,64,175,0.35)]">
-            <div className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-gradient-to-br from-blue-100/80 to-cyan-100/60 blur-xl" />
-            <div className="pointer-events-none absolute -bottom-8 -left-8 h-16 w-16 rounded-full bg-gradient-to-tr from-indigo-100/70 to-transparent blur-lg" />
 
-            <div className="relative flex items-center gap-3">
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50 via-white to-cyan-50 text-lg font-black text-blue-700 shadow-inner">
-                <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
-                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-              </div>
+            {/* Right: User Profile */}
+            <div className="ml-auto flex items-center flex-shrink-0">
+              {/* User Profile Card - Compact */}
+              <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-3 py-2.5 shadow-sm hover:shadow-md transition-all duration-300">
+                {/* Avatar */}
+                <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white font-extrabold text-sm shadow-md">
+                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                  <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                </div>
 
-              <div className="hidden min-w-0 md:block">
-                <p className="truncate text-[15px] font-extrabold tracking-tight text-slate-900">{user?.name || 'User'}</p>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{user?.role || 'User'}</p>
+                {/* User Info */}
+                <div className="hidden sm:block min-w-0">
+                  <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'User'}</p>
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{user?.role || 'User'}</p>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </header>
 
