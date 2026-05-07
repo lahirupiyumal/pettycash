@@ -88,7 +88,7 @@ export default function Login() {
                 disabled={loading}
                 className="mt-4 w-full rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-emerald-500 py-3.5 font-bold tracking-wide text-white shadow-lg shadow-blue-200 transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-300 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
               >
-                {loading ? 'Authenticating...' : 'Secure Sign In'}
+                {loading ? 'Authenticating...' : ' Sign In'}
               </button>
             </form>
 
