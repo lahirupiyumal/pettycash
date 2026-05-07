@@ -27,9 +27,10 @@ function formatTooltip(value) {
 
 export default function Forecast({ records = [] }) {
   const forecastData = useMemo(() => {
-    if (!records.length) return { cashInHand: [], invoiceAmount: [], utilization: [] };
+    if (!records.length) {
+      return { cashInHand: [], invoiceAmount: [], utilization: [], nextSixMonths: [] };
+    }
 
-    // Group records by month and year
     const monthlyData = {};
     records.forEach((record) => {
       const key = `${record.year}-${record.month}`;
@@ -57,16 +58,71 @@ export default function Forecast({ records = [] }) {
       })
       .slice(-12);
 
-    // Generate forecast (simple linear interpolation)
-    const generateForecast = (values) => {
-      if (values.length < 2) return values;
-      const avgChange = (values[values.length - 1] - values[0]) / values.length;
-      return values.map((val, i) => ({
-        value: val,
-        forecast: Math.max(0, val + avgChange * (i + 1)),
-        lowerBound: Math.max(0, val + avgChange * (i + 1) - val * 0.15),
-        upperBound: val + avgChange * (i + 1) + val * 0.15,
+    const buildSeries = (metricKey, colorKey) => {
+      const values = data.map((entry) => entry[metricKey]);
+      const forecastValues = generateForecast(values);
+      const futureValues = buildFutureValues(values);
+      const lastMonth = data[data.length - 1];
+
+      const historical = data.map((entry, index) => ({
+        ...entry,
+        value: Math.max(0, Math.round(entry[metricKey])),
+        forecast: forecastValues[index]?.forecast ?? null,
+        lowerBound: forecastValues[index]?.lowerBound ?? null,
+        upperBound: forecastValues[index]?.upperBound ?? null,
+        dateLabel: `${entry.year}-${String(getMonthNumber(entry.month)).padStart(2, '0')}`,
+        isFuture: false,
+        metricKey,
+        colorKey,
       }));
+
+      const future = Array.from({ length: 6 }, (_, index) => {
+        const monthDate = new Date(Number(lastMonth.year), getMonthNumber(lastMonth.month) - 1 + index + 1, 1);
+        return {
+          key: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
+          year: monthDate.getFullYear(),
+          month: monthDate.toLocaleString('en-US', { month: 'long' }),
+          dateLabel: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
+          value: null,
+          forecast: futureValues[index],
+          lowerBound: Math.max(0, Math.round(futureValues[index] * 0.85)),
+          upperBound: Math.max(0, Math.round(futureValues[index] * 1.15)),
+          isFuture: true,
+          metricKey,
+          colorKey,
+        };
+      });
+
+      return [...historical, ...future];
+    };
+
+    const generateForecast = (values) => {
+      if (!values.length) return [];
+
+      const start = values[0];
+      const end = values[values.length - 1];
+      const slope = values.length > 1 ? (end - start) / (values.length - 1) : 0;
+
+      return values.map((val, i) => {
+        const forecast = Math.max(0, Math.round(val + slope * (i + 1)));
+        return {
+          value: Math.max(0, Math.round(val)),
+          forecast,
+          lowerBound: Math.max(0, Math.round(forecast - val * 0.15)),
+          upperBound: Math.max(0, Math.round(forecast + val * 0.15)),
+        };
+      });
+    };
+
+    const buildFutureValues = (values) => {
+      if (!values.length) return [];
+
+      const start = values[0];
+      const end = values[values.length - 1];
+      const slope = values.length > 1 ? (end - start) / (values.length - 1) : 0;
+      const lastValue = values[values.length - 1];
+
+      return Array.from({ length: 6 }, (_, index) => Math.max(0, Math.round(lastValue + slope * (index + 1))));
     };
 
     const cashInHandValues = data.map((d) => d.cashInHand);
@@ -76,23 +132,15 @@ export default function Forecast({ records = [] }) {
     const cashInHandForecast = generateForecast(cashInHandValues);
     const invoiceAmountForecast = generateForecast(invoiceAmountValues);
     const utilizationForecast = generateForecast(utilizationValues);
+    const nextCashInHand = buildFutureValues(cashInHandValues);
+    const nextInvoiceAmount = buildFutureValues(invoiceAmountValues);
+    const nextUtilization = buildFutureValues(utilizationValues);
 
+    const lastMonth = data[data.length - 1];
     return {
-      cashInHand: data.map((d, i) => ({
-        ...d,
-        ...cashInHandForecast[i],
-        dateLabel: `${d.year}-${String(getMonthNumber(d.month)).padStart(2, '0')}`,
-      })),
-      invoiceAmount: data.map((d, i) => ({
-        ...d,
-        ...invoiceAmountForecast[i],
-        dateLabel: `${d.year}-${String(getMonthNumber(d.month)).padStart(2, '0')}`,
-      })),
-      utilization: data.map((d, i) => ({
-        ...d,
-        ...utilizationForecast[i],
-        dateLabel: `${d.year}-${String(getMonthNumber(d.month)).padStart(2, '0')}`,
-      })),
+      cashInHand: buildSeries('cashInHand', 'values'),
+      invoiceAmount: buildSeries('invoiceAmount', 'values'),
+      utilization: buildSeries('utilization', 'values'),
     };
   }, [records]);
 
@@ -154,6 +202,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={3}
                   dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }}
                   activeDot={{ r: 6, strokeWidth: 0 }}
+                  connectNulls={false}
                 />
                 <Line
                   type="monotone"
@@ -163,6 +212,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
+                  connectNulls
                 />
                 <Line
                   type="monotone"
@@ -172,6 +222,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={1}
                   dot={false}
                   opacity={0.4}
+                  connectNulls
                 />
                 <Line
                   type="monotone"
@@ -181,6 +232,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={1}
                   dot={false}
                   opacity={0.4}
+                  connectNulls
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -244,6 +296,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={3}
                   dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }}
                   activeDot={{ r: 6, strokeWidth: 0 }}
+                  connectNulls={false}
                 />
                 <Line
                   type="monotone"
@@ -253,6 +306,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
+                  connectNulls
                 />
                 <Line
                   type="monotone"
@@ -262,6 +316,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={1}
                   dot={false}
                   opacity={0.4}
+                  connectNulls
                 />
                 <Line
                   type="monotone"
@@ -271,6 +326,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={1}
                   dot={false}
                   opacity={0.4}
+                  connectNulls
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -334,6 +390,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={3}
                   dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }}
                   activeDot={{ r: 6, strokeWidth: 0 }}
+                  connectNulls={false}
                 />
                 <Line
                   type="monotone"
@@ -343,6 +400,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
+                  connectNulls
                 />
                 <Line
                   type="monotone"
@@ -352,6 +410,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={1}
                   dot={false}
                   opacity={0.4}
+                  connectNulls
                 />
                 <Line
                   type="monotone"
@@ -361,6 +420,7 @@ export default function Forecast({ records = [] }) {
                   strokeWidth={1}
                   dot={false}
                   opacity={0.4}
+                  connectNulls
                 />
               </LineChart>
             </ResponsiveContainer>
