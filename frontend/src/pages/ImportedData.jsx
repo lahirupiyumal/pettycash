@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, FileSpreadsheet, Hash, Layers, Trash2 } from 'lucide-react';
 import api from '../api/axios';
+import RecordTable from '../components/RecordTable';
 
 export default function ImportedDataPage({ loading, error, onDeleteSuccess, refreshTrigger = 0 }) {
   const [deleting, setDeleting] = useState(false);
@@ -8,6 +9,8 @@ export default function ImportedDataPage({ loading, error, onDeleteSuccess, refr
   const [files, setFiles] = useState([]);
   const [selectedFileId, setSelectedFileId] = useState('');
   const [pageError, setPageError] = useState('');
+  const [records, setRecords] = useState([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -30,6 +33,28 @@ export default function ImportedDataPage({ loading, error, onDeleteSuccess, refr
     };
     fetchFiles();
   }, [refreshTrigger]);
+
+  // Fetch records for selected file
+  useEffect(() => {
+    if (!selectedFileId) {
+      setRecords([]);
+      return;
+    }
+
+    const fetchRecords = async () => {
+      try {
+        setRecordsLoading(true);
+        const response = await api.get('/records', { params: { importFileId: selectedFileId } });
+        setRecords(response.data || []);
+      } catch (err) {
+        console.error('Failed to fetch records:', err);
+        setRecords([]);
+      } finally {
+        setRecordsLoading(false);
+      }
+    };
+    fetchRecords();
+  }, [selectedFileId]);
 
   const selectedFile = useMemo(() => files.find((file) => file._id === selectedFileId), [files, selectedFileId]);
 
@@ -178,6 +203,34 @@ export default function ImportedDataPage({ loading, error, onDeleteSuccess, refr
           )}
         </div>
       </div>
+
+      {/* ── Data preview table ── */}
+      {selectedFileId && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
+                <FileSpreadsheet className="h-4 w-4 text-white" strokeWidth={1.8} />
+              </div>
+              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Data Preview</p>
+            </div>
+            {recordsLoading && (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-100 border-t-blue-600" />
+                <span className="text-xs font-medium text-slate-500">Loading...</span>
+              </div>
+            )}
+          </div>
+          {recordsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <p className="text-sm text-slate-500">Fetching records...</p>
+            </div>
+          ) : (
+            <RecordTable records={records} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
+
