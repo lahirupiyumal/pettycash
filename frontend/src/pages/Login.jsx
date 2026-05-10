@@ -18,8 +18,8 @@ export default function Login() {
       const { data } = await api.post('/auth/login', form);
       login(data.user, data.token);
       navigate('/');
-    } catch {
-      setError('Invalid credentials. Please check your email and password.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid credentials. Please check your email and password.');
     } finally {
       setLoading(false);
     }
