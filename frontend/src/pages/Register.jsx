@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   useAuth();
 
@@ -18,15 +18,16 @@ export default function Register() {
     }
     setLoading(true);
     setError('');
+    setSuccess('');
     try {
-      await api.post('/auth/register', { 
+      const { data } = await api.post('/auth/register', { 
         name: form.name, 
         email: form.email, 
-        password: form.password,
-        role: 'user'
+        password: form.password
       });
-      // Optionally auto-login or redirect to login
-      navigate('/login');
+      setSuccess(data.message);
+      // Auto-redirect after 3 seconds
+      setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -63,6 +64,12 @@ export default function Register() {
             {error && (
               <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-700 shadow-inner shadow-red-100">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-700 shadow-inner shadow-emerald-100">
+                {success}
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSummary } from '../hooks/useSummary';
@@ -12,6 +12,7 @@ import ImportedDataPage from './ImportedData';
 import Forecast from '../components/Forecast';
 import InvoiceTotal from '../components/InvoiceTotal';
 import CostCenters from '../components/CostCenters';
+import AdminPanel from '../components/AdminPanel';
 import {
   BarChart3,
   FileSpreadsheet,
@@ -23,6 +24,7 @@ import {
   PieChart,
   ReceiptText,
   Upload,
+  Settings,
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -35,7 +37,7 @@ export default function Dashboard() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { records, loading: recordsLoading, error: recordsError } = useRecords(refreshTrigger);
   
-  const [activeTab, setActiveTab] = useState('OVERVIEW');
+  const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? 'ADMIN PANEL' : 'OVERVIEW');
 
   const handleImportSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -46,17 +48,23 @@ export default function Dashboard() {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  const menuItems = [
-    { label: 'OVERVIEW', icon: LayoutDashboard },
-    { label: 'INVOICE TOTAL', icon: ReceiptText },
-    { label: 'CASH IN HAND', icon: HandCoins },
-    { label: 'VARIANCE', icon: PieChart },
-    { label: 'Monthly Summary', icon: BarChart3 },
-    { label: 'Cost Centers', icon: Grid2x2 },
-    { label: 'Forecast', icon: Gauge },
-    { label: 'Imported Data', icon: FileSpreadsheet },
-    { label: 'Import Excel File', icon: Upload },
-  ];
+  const menuItems = useMemo(() => {
+    if (user?.role === 'admin') {
+      return [{ label: 'ADMIN PANEL', icon: Settings }];
+    }
+    
+    return [
+      { label: 'OVERVIEW', icon: LayoutDashboard },
+      { label: 'INVOICE TOTAL', icon: ReceiptText },
+      { label: 'CASH IN HAND', icon: HandCoins },
+      { label: 'VARIANCE', icon: PieChart },
+      { label: 'Monthly Summary', icon: BarChart3 },
+      { label: 'Cost Centers', icon: Grid2x2 },
+      { label: 'Forecast', icon: Gauge },
+      { label: 'Imported Data', icon: FileSpreadsheet },
+      { label: 'Import Excel File', icon: Upload },
+    ];
+  }, [user?.role]);
 
   const pageTitle = activeTab;
 
@@ -78,70 +86,106 @@ export default function Dashboard() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-7 custom-scrollbar">
           {/* Main Menu Group */}
-          <div>
-            <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
-              Main Menu
-            </p>
-            <div className="space-y-1">
-              {menuItems.slice(0, 7).map(({ label, icon: Icon }) => {
-                const isActive = activeTab === label;
-                return (
-                  <button
-                    key={label}
-                    onClick={() => setActiveTab(label)}
-                    className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
-                      isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/10'
-                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
-                    <span className="flex-1 text-left tracking-wide">{label}</span>
-                    {isActive && (
-                      <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
-                    )}
-                  </button>
-                );
-              })}
+          {menuItems.some(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label)) && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Main Menu
+              </p>
+              <div className="space-y-1">
+                {menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label)).map(({ label, icon: Icon }) => {
+                  const isActive = activeTab === label;
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => setActiveTab(label)}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Data Management Group */}
-          <div>
-            <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
-              Data Management
-            </p>
-            <div className="space-y-1">
-              {menuItems.slice(7).map(({ label, icon: Icon }) => {
-                const isActive = activeTab === label;
-                return (
-                  <button
-                    key={label}
-                    onClick={() => setActiveTab(label)}
-                    className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
-                      isActive
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-white/10'
-                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
-                    <span className="flex-1 text-left tracking-wide">{label}</span>
-                    {isActive && (
-                      <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
-                    )}
-                  </button>
-                );
-              })}
-              
-              {/* Logout Button */}
-              <button
-                onClick={logout}
-                className="group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 bg-red-500/15 text-red-400 hover:bg-red-500/25 hover:text-red-300 shadow-sm hover:shadow-md mt-2"
-              >
-                <LogOut className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" strokeWidth={2.5} />
-                <span className="flex-1 text-left tracking-wide">Logout</span>
-              </button>
+          {menuItems.some(item => ['Imported Data', 'Import Excel File'].includes(item.label)) && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Data Management
+              </p>
+              <div className="space-y-1">
+                {menuItems.filter(item => ['Imported Data', 'Import Excel File'].includes(item.label)).map(({ label, icon: Icon }) => {
+                  const isActive = activeTab === label;
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => setActiveTab(label)}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+          )}
+
+          {/* Admin Section */}
+          {menuItems.some(item => item.label === 'ADMIN PANEL') && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Administration
+              </p>
+              <div className="space-y-1">
+                {menuItems.filter(item => item.label === 'ADMIN PANEL').map(({ label, icon: Icon }) => {
+                  const isActive = activeTab === label;
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => setActiveTab(label)}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-4 border-t border-slate-800/60">
+            <button
+              onClick={logout}
+              className="group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 bg-red-500/15 text-red-400 hover:bg-red-500/25 hover:text-red-300 shadow-sm hover:shadow-md"
+            >
+              <LogOut className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" strokeWidth={2.5} />
+              <span className="flex-1 text-left tracking-wide">Logout</span>
+            </button>
           </div>
         </nav>
       </aside>
@@ -161,7 +205,9 @@ export default function Dashboard() {
               {/* User Profile Card - Compact */}
               <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-3 py-2.5 shadow-sm hover:shadow-md transition-all duration-300">
                 {/* Avatar */}
-                <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white font-extrabold text-sm shadow-md">
+                <div className={`relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl font-extrabold text-sm shadow-md text-white ${
+                  user?.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                }`}>
                   {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                   <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
                 </div>
@@ -253,6 +299,8 @@ export default function Dashboard() {
                 recordsError={recordsError}
                 recordsLoading={recordsLoading}
               />
+            ) : activeTab === 'ADMIN PANEL' ? (
+              <AdminPanel />
             ) : (
               <InvoiceTotal
                 summary={summary}
