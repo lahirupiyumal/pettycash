@@ -9,26 +9,87 @@ exports.importRecords = async (req, res) => {
       return res.status(400).json({ message: 'Invalid records array' });
     }
 
+    // Step 1: Deduplicate rows within the uploaded file itself
+    const uniqueIncoming = [];
+    const seenKeys = new Set();
+    for (const r of records) {
+      const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        uniqueIncoming.push(r);
+      }
+    }
+
+    // Step 2: Find records that already exist in the DB for this user
+    const existingDocs = await PettyCashRecord.find({
+      createdBy: req.user.id,
+      $or: uniqueIncoming.map(r => ({
+        region: r.region,
+        pcfRef: r.pcfRef,
+        year: r.year,
+        month: r.month,
+      })),
+    }).select('region pcfRef year month');
+
+    const existingKeys = new Set(
+      existingDocs.map(r =>
+        `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`
+      )
+    );
+
+    // Step 3: Keep only records that do NOT exist in the DB
+    const newRecords = uniqueIncoming.filter(r => {
+      const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
+      return !existingKeys.has(key);
+    });
+
+    const skipped = records.length - newRecords.length;
+
+    if (newRecords.length === 0) {
+      return res.status(200).json({
+        message: `No new records imported. All ${skipped} record(s) already exist in the system.`,
+        count: 0,
+        skipped,
+      });
+    }
+
     const importFile = await ImportedFile.create({
       fileName: fileName || 'Imported Excel File',
       createdBy: req.user.id,
-      recordCount: records.length,
+      recordCount: newRecords.length,
     });
 
-    // Add createdBy, sourceFileName, and importFileId to all records
-    const recordsWithUser = records.map(record => ({
+    const recordsToInsert = newRecords.map(record => ({
       ...record,
       createdBy: req.user.id,
       sourceFileName: fileName || 'Imported Excel File',
       importFileId: importFile._id,
     }));
 
-    const inserted = await PettyCashRecord.insertMany(recordsWithUser);
-    await ImportedFile.findByIdAndUpdate(importFile._id, { recordCount: inserted.length });
+    let insertedCount = 0;
+    let dbSkipped = 0;
+
+    try {
+      // ordered: false → MongoDB continues on duplicate key errors instead of stopping
+      const result = await PettyCashRecord.insertMany(recordsToInsert, { ordered: false });
+      insertedCount = result.length;
+    } catch (bulkErr) {
+      // Code 11000 = duplicate key — some records inserted, some skipped
+      if (bulkErr.code === 11000 || bulkErr.name === 'BulkWriteError') {
+        insertedCount = bulkErr.result?.nInserted ?? 0;
+        dbSkipped = recordsToInsert.length - insertedCount;
+      } else {
+        throw bulkErr; // rethrow unexpected errors
+      }
+    }
+
+    const totalSkipped = skipped + dbSkipped;
+    await ImportedFile.findByIdAndUpdate(importFile._id, { recordCount: insertedCount });
 
     res.status(201).json({
-      message: `Successfully imported ${inserted.length} records.`,
-      count: inserted.length,
+      message: `Successfully imported ${insertedCount} record(s).${totalSkipped > 0 ? ` ${totalSkipped} duplicate(s) were skipped.` : ''}`,
+      count: insertedCount,
+      skipped: totalSkipped,
       file: {
         id: importFile._id,
         fileName: importFile.fileName,
