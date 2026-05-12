@@ -13,6 +13,8 @@ import Forecast from '../components/Forecast';
 import InvoiceTotal from '../components/InvoiceTotal';
 import CostCenters from '../components/CostCenters';
 import AdminPanel from '../components/AdminPanel';
+import AccountantImport from './AccountantImport';
+import AccountantImportedData from './AccountantImportedData';
 import {
   BarChart3,
   FileSpreadsheet,
@@ -44,6 +46,11 @@ export default function Dashboard() {
     setActiveTab('Imported Data');
   }, []);
 
+  const handleAccountantImportSuccess = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+    setActiveTab('Accountant Data');
+  }, []);
+
   const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
@@ -63,6 +70,8 @@ export default function Dashboard() {
       { label: 'Forecast', icon: Gauge },
       { label: 'Imported Data', icon: FileSpreadsheet },
       { label: 'Import Excel File', icon: Upload },
+      { label: 'Accountant Data', icon: FileSpreadsheet },
+      { label: 'Accountant Import', icon: Upload },
     ];
   }, [user?.role]);
 
@@ -117,21 +126,24 @@ export default function Dashboard() {
           )}
 
           {/* Data Management Group */}
-          {menuItems.some(item => ['Imported Data', 'Import Excel File'].includes(item.label)) && (
+          {menuItems.some(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label)) && (
             <div>
               <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
                 Data Management
               </p>
               <div className="space-y-1">
-                {menuItems.filter(item => ['Imported Data', 'Import Excel File'].includes(item.label)).map(({ label, icon: Icon }) => {
+                {menuItems.filter(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label)).map(({ label, icon: Icon }) => {
                   const isActive = activeTab === label;
+                  const isAccountant = label.includes('Accountant');
                   return (
                     <button
                       key={label}
                       onClick={() => setActiveTab(label)}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
                         isActive
-                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-white/10'
+                          ? isAccountant 
+                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 ring-1 ring-white/10'
+                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-white/10'
                           : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                       }`}
                     >
@@ -250,7 +262,12 @@ export default function Dashboard() {
                 loading={recordsLoading}
                 error={recordsError}
                 onDeleteSuccess={handleDeleteSuccess}
+                refreshTrigger={refreshTrigger}
               />
+            ) : activeTab === 'Accountant Import' ? (
+              <AccountantImport onImportSuccess={handleAccountantImportSuccess} />
+            ) : activeTab === 'Accountant Data' ? (
+              <AccountantImportedData refreshTrigger={refreshTrigger} />
             ) : activeTab === 'Forecast' ? (
               recordsError ? (
                 <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>

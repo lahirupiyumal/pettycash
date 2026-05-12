@@ -57,6 +57,7 @@ exports.importRecords = async (req, res) => {
       fileName: fileName || 'Imported Excel File',
       createdBy: req.user.id,
       recordCount: newRecords.length,
+      type: 'pettyCash',
     });
 
     const recordsToInsert = newRecords.map(record => ({
@@ -136,7 +137,10 @@ exports.getRecords = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
-    const files = await ImportedFile.find({ createdBy: req.user.id }).sort({ createdAt: -1 }).lean();
+    const files = await ImportedFile.find({ 
+      createdBy: req.user.id, 
+      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }] 
+    }).sort({ createdAt: -1 }).lean();
 
     const legacyCount = await PettyCashRecord.countDocuments({
       createdBy: req.user.id,
