@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+const { Types } = mongoose;
 const PettyCashRecord = require('../models/PettyCashRecord');
 const ImportedFile = require('../models/ImportedFile');
 
@@ -105,32 +107,61 @@ exports.importRecords = async (req, res) => {
 exports.getRecords = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    let targetImportFileId = importFileId;
+    let matchQuery = { createdBy: new Types.ObjectId(req.user.id) };
 
-    if (targetImportFileId === 'legacy') {
-      const legacyRecords = await PettyCashRecord.find({
-        createdBy: req.user.id,
-        $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
-      }).sort({ year: -1, month: -1, createdAt: -1 });
-
-      return res.json(legacyRecords);
+    if (importFileId === 'legacy') {
+      matchQuery.$or = [{ importFileId: { $exists: false } }, { importFileId: null }];
+    } else if (importFileId) {
+      matchQuery.importFileId = new Types.ObjectId(importFileId);
     }
 
-    if (!targetImportFileId) {
-      const allRecords = await PettyCashRecord.find({
-        createdBy: req.user.id,
-      }).sort({ year: -1, month: -1, createdAt: -1 });
-
-      return res.json(allRecords);
-    }
-
-    const records = await PettyCashRecord.find({
-      createdBy: req.user.id,
-      importFileId: targetImportFileId,
-    }).sort({ year: -1, month: -1, createdAt: -1 });
+    const records = await PettyCashRecord.aggregate([
+      { $match: matchQuery },
+      {
+        $lookup: {
+          from: 'accountants',
+          let: { 
+            r_region: { $toLower: { $trim: { input: '$region' } } }, 
+            r_pcf: { $toLower: { $trim: { input: '$pcfRef' } } }, 
+            r_year: '$year', 
+            r_month: { $toLower: { $trim: { input: '$month' } } }, 
+            r_user: '$createdBy' 
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$createdBy', '$$r_user'] },
+                    { $eq: [{ $toLower: { $trim: { input: '$region' } } }, '$$r_region'] },
+                    { $eq: [{ $toLower: { $trim: { input: '$pcfRef' } } }, '$$r_pcf'] },
+                    { $eq: ['$year', '$$r_year'] },
+                    { $eq: [{ $toLower: { $trim: { input: '$month' } } }, '$$r_month'] }
+                  ]
+                }
+              }
+            },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 }
+          ],
+          as: 'accountantInfo'
+        }
+      },
+      { $addFields: { accountant: { $arrayElemAt: ['$accountantInfo', 0] } } },
+      {
+        $addFields: {
+          // Priority: Accountant record > PettyCash record
+          number: { $ifNull: ['$accountant.number', '$number'] },
+          costCenterName: { $ifNull: ['$accountant.costCenterName', '$costCenterName'] }
+        }
+      },
+      { $project: { accountantInfo: 0, accountant: 0 } },
+      { $sort: { year: -1, month: -1, createdAt: -1 } }
+    ]);
 
     res.json(records);
   } catch (err) {
+    console.error('getRecords error:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -191,7 +222,11 @@ exports.deleteRecords = async (req, res) => {
     }
 
     const result = await PettyCashRecord.deleteMany({ createdBy: req.user.id });
-    await ImportedFile.deleteMany({ createdBy: req.user.id });
+    // Fix: Only delete pettyCash files, don't touch accountant files
+    await ImportedFile.deleteMany({ 
+      createdBy: req.user.id, 
+      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }] 
+    });
 
     res.json({ message: 'Imported data deleted successfully.', deletedCount: result.deletedCount || 0 });
   } catch (err) {

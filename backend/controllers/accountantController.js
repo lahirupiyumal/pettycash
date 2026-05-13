@@ -8,24 +8,81 @@ exports.importAccountants = async (req, res) => {
       return res.status(400).json({ message: 'Invalid records array' });
     }
 
+    // Step 1: Deduplicate rows within the uploaded file
+    const uniqueIncoming = [];
+    const seenKeys = new Set();
+    for (const r of records) {
+      const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        uniqueIncoming.push(r);
+      }
+    }
+
+    // Step 2: Find records that already exist in the DB
+    const existingDocs = await Accountant.find({
+      createdBy: req.user.id,
+      $or: uniqueIncoming.map(r => ({
+        region: r.region,
+        pcfRef: r.pcfRef,
+        year: r.year,
+        month: r.month,
+      })),
+    }).select('region pcfRef year month');
+
+    const existingKeys = new Set(
+      existingDocs.map(r =>
+        `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`
+      )
+    );
+
+    // Step 3: Keep only new records
+    const newRecords = uniqueIncoming.filter(r => {
+      const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
+      return !existingKeys.has(key);
+    });
+
+    const skipped = records.length - newRecords.length;
+
+    if (newRecords.length === 0) {
+      return res.status(200).json({
+        message: `No new records imported. All ${skipped} record(s) already exist in the system.`,
+        count: 0,
+        skipped,
+      });
+    }
+
     const importFile = await ImportedFile.create({
       fileName: fileName || 'Imported Accountant File',
       createdBy: req.user.id,
-      recordCount: records.length,
+      recordCount: newRecords.length,
       type: 'accountant',
     });
 
-    const recordsToInsert = records.map(record => ({
+    const recordsToInsert = newRecords.map(record => ({
       ...record,
       createdBy: req.user.id,
       importFileId: importFile._id,
     }));
 
-    await Accountant.insertMany(recordsToInsert);
+    let insertedCount = 0;
+    try {
+      const result = await Accountant.insertMany(recordsToInsert, { ordered: false });
+      insertedCount = result.length;
+    } catch (bulkErr) {
+      if (bulkErr.code === 11000 || bulkErr.name === 'BulkWriteError') {
+        insertedCount = bulkErr.result?.nInserted ?? 0;
+      } else {
+        throw bulkErr;
+      }
+    }
+
+    await ImportedFile.findByIdAndUpdate(importFile._id, { recordCount: insertedCount });
 
     res.status(201).json({
-      message: `Successfully imported ${records.length} accountant record(s).`,
-      count: records.length,
+      message: `Successfully imported ${insertedCount} accountant record(s).${skipped > 0 ? ` ${skipped} duplicate(s) were skipped.` : ''}`,
+      count: insertedCount,
+      skipped,
       file: {
         id: importFile._id,
         fileName: importFile.fileName,
