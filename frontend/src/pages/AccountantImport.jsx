@@ -109,10 +109,13 @@ export default function AccountantImport({ onImportSuccess }) {
       </div>
       
       <div className="p-8 bg-slate-50/50">
-        <div className="mb-8 max-w-2xl">
-          <p className="text-sm font-medium text-slate-600 leading-relaxed">
+        <div className="mb-8 max-w-2xl text-sm font-medium text-slate-600 leading-relaxed">
+          <p>
             Upload the Accountant Details Excel file. The expected format is: 
             <span className="font-bold text-slate-800 ml-1">Region, PCF Ref, Cost Center Name, Number, Year, Month</span>.
+          </p>
+          <p className="mt-2 text-indigo-600 font-semibold italic text-xs">
+            * Duplicate records found in previously uploaded files will be automatically skipped to prevent data redundancy.
           </p>
         </div>
 
