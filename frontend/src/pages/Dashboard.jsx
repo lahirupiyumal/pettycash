@@ -15,8 +15,10 @@ import CostCenters from '../components/CostCenters';
 import AdminPanel from '../components/AdminPanel';
 import AccountantImport from './AccountantImport';
 import AccountantImportedData from './AccountantImportedData';
+import AccountantDetails from './AccountantDetails';
 import {
   BarChart3,
+  BookUser,
   FileSpreadsheet,
   Gauge,
   Grid2x2,
@@ -68,6 +70,7 @@ export default function Dashboard() {
       { label: 'Monthly Summary', icon: BarChart3 },
       { label: 'Cost Centers', icon: Grid2x2 },
       { label: 'Forecast', icon: Gauge },
+      { label: 'Accountant Details', icon: BookUser },
       { label: 'Imported Data', icon: FileSpreadsheet },
       { label: 'Import Excel File', icon: Upload },
       { label: 'Accountant Data', icon: FileSpreadsheet },
@@ -95,13 +98,13 @@ export default function Dashboard() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-7 custom-scrollbar">
           {/* Main Menu Group */}
-          {menuItems.some(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label)) && (
+          {menuItems.some(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label)) && (
             <div>
               <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
                 Main Menu
               </p>
               <div className="space-y-1">
-                {menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label)).map(({ label, icon: Icon }) => {
+                {menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label)).map(({ label, icon: Icon }) => {
                   const isActive = activeTab === label;
                   return (
                     <button
@@ -268,6 +271,8 @@ export default function Dashboard() {
               <AccountantImport onImportSuccess={handleAccountantImportSuccess} />
             ) : activeTab === 'Accountant Data' ? (
               <AccountantImportedData refreshTrigger={refreshTrigger} />
+            ) : activeTab === 'Accountant Details' ? (
+              <AccountantDetails />
             ) : activeTab === 'Forecast' ? (
               recordsError ? (
                 <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
