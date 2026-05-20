@@ -8,13 +8,22 @@ import {
   FileSpreadsheet,
   Hash,
   LayoutList,
-  Map,
+  Map as MapIcon,
   MapPin,
   Search,
   Users,
   X,
 } from 'lucide-react';
 import api from '../api/axios';
+import {
+  BarChart,
+  Bar,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import RegionView from '../components/RegionView';
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -53,6 +62,125 @@ function SortIcon({ column, sortConfig }) {
   return sortConfig.dir === 'asc'
     ? <ChevronUp className="h-3.5 w-3.5 text-indigo-500" />
     : <ChevronDown className="h-3.5 w-3.5 text-indigo-500" />;
+}
+
+function ProgressChart({ records }) {
+  const [chartYear, setChartYear] = useState('');
+  const [chartMonth, setChartMonth] = useState('');
+
+  const chartYears = useMemo(
+    () => [...new Set(records.map(r => r.year).filter(Boolean))].sort((a, b) => b - a),
+    [records]
+  );
+
+  const chartMonths = useMemo(
+    () => [...new Set(records.map(r => r.month).filter(Boolean))].sort((a, b) => monthIndex(a) - monthIndex(b)),
+    [records]
+  );
+
+  useEffect(() => {
+    if (!chartYear && chartYears.length) setChartYear(String(chartYears[0]));
+    if (!chartMonth && chartMonths.length) setChartMonth(chartMonths[0]);
+  }, [chartYear, chartMonth, chartYears, chartMonths]);
+
+  const chartData = useMemo(() => {
+    const filtered = records.filter(r => (
+      (!chartYear || String(r.year) === String(chartYear)) &&
+      (!chartMonth || r.month === chartMonth)
+    ));
+
+    const regionMap = new Map();
+    filtered.forEach(r => {
+      const key = r.region || '(No Region)';
+      if (!regionMap.has(key)) {
+        regionMap.set(key, { region: key, completed: 0, costCenters: new Set() });
+      }
+      const entry = regionMap.get(key);
+      entry.completed += 1;
+      if (r.costCenterName) entry.costCenters.add(r.costCenterName);
+    });
+
+    return [...regionMap.values()]
+      .map(entry => ({
+        region: entry.region,
+        completed: entry.completed,
+        costCenters: entry.costCenters.size,
+      }))
+      .sort((a, b) => b.completed - a.completed);
+  }, [records, chartYear, chartMonth]);
+
+  const totalCompleted = chartData.reduce((sum, item) => sum + item.completed, 0);
+  const topRegion = chartData[0]?.region || '—';
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+        <div>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Progress Chart</p>
+          <h3 className="text-base font-black text-slate-900">Region completion by month</h3>
+          <p className="text-xs text-slate-500 mt-1">Pick a month to see which region completed the most cost centers.</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={chartYear}
+            onChange={e => setChartYear(e.target.value)}
+            className="appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+            <option value="">All Years</option>
+            {chartYears.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select
+            value={chartMonth}
+            onChange={e => setChartMonth(e.target.value)}
+            className="appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+            <option value="">All Months</option>
+            {chartMonths.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid gap-4 border-b border-slate-100 px-6 py-4 sm:grid-cols-3">
+        <div className="rounded-xl bg-slate-50 px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Completed</p>
+          <p className="mt-1 text-2xl font-black text-slate-900">{totalCompleted.toLocaleString()}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Top region</p>
+          <p className="mt-1 text-2xl font-black text-slate-900 truncate">{topRegion}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Regions active</p>
+          <p className="mt-1 text-2xl font-black text-slate-900">{chartData.length.toLocaleString()}</p>
+        </div>
+      </div>
+
+      <div className="px-4 py-4 sm:px-6">
+        {chartData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 text-center">
+            <CalendarDays className="h-10 w-10 text-slate-300" />
+            <p className="mt-3 text-sm font-semibold text-slate-500">No region completions found for the selected month.</p>
+          </div>
+        ) : (
+          <div className="h-[320px] w-full">
+            <ResponsiveContainer>
+              <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="region" tick={{ fontSize: 12 }} interval={0} angle={-20} textAnchor="end" height={70} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip
+                  cursor={{ fill: '#f8fafc' }}
+                  formatter={(value, name) => [value, name === 'completed' ? 'Completed' : 'Cost centers']}
+                />
+                <Bar dataKey="completed" name="completed" radius={[8, 8, 0, 0]} fill="#4f46e5" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── main component ─────────────────────────────────────────────────────────
@@ -209,7 +337,7 @@ export default function AccountantDetails() {
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Map className="h-3.5 w-3.5" />
+              <MapIcon className="h-3.5 w-3.5" />
               By Region
             </button>
           </div>
@@ -253,6 +381,8 @@ export default function AccountantDetails() {
           iconBg="bg-gradient-to-br from-orange-400 to-rose-500"
         />
       </div>
+
+      <ProgressChart records={records} />
 
       {/* ── Region View ── */}
       {activeView === 'region' && (

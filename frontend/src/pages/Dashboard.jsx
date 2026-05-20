@@ -15,7 +15,7 @@ import CostCenters from '../components/CostCenters';
 import AdminPanel from '../components/AdminPanel';
 import AccountantImport from './AccountantImport';
 import AccountantImportedData from './AccountantImportedData';
-import AccountantDetails from './AccountantDetails';
+import AccountantDetails from './AccountantProgressAnalytics';
 import {
   BarChart3,
   BookUser,
@@ -59,7 +59,10 @@ export default function Dashboard() {
 
   const menuItems = useMemo(() => {
     if (user?.role === 'admin') {
-      return [{ label: 'ADMIN PANEL', icon: Settings }];
+      return [
+        { label: 'ADMIN PANEL', icon: Settings },
+        { label: 'Accountant Details', icon: BookUser },
+      ];
     }
     
     return [
@@ -272,7 +275,7 @@ export default function Dashboard() {
             ) : activeTab === 'Accountant Data' ? (
               <AccountantImportedData refreshTrigger={refreshTrigger} />
             ) : activeTab === 'Accountant Details' ? (
-              <AccountantDetails />
+              <AccountantDetails refreshTrigger={refreshTrigger} />
             ) : activeTab === 'Forecast' ? (
               recordsError ? (
                 <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
