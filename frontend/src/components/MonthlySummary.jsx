@@ -51,7 +51,7 @@ function normalizeMonth(monthValue) {
 
 function normalizeYear(yearValue) {
   const year = Number(yearValue);
-  return Number.isFinite(year) ? year : null;
+  return Number.isInteger(year) && year > 0 ? year : null;
 }
 
 export default function MonthlySummary({ records = [] }) {
