@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { Link, useLocation, useNavigate, Outlet, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSummary } from '../hooks/useSummary';
@@ -12,10 +13,8 @@ import ImportedDataPage from './ImportedData';
 import Forecast from '../components/Forecast';
 import InvoiceTotal from '../components/InvoiceTotal';
 import CostCenters from '../components/CostCenters';
-import AdminPanel from '../components/AdminPanel';
 import AccountantImport from './AccountantImport';
 import AccountantImportedData from './AccountantImportedData';
-import AccountantDetails from './AccountantDetails';
 import {
   BarChart3,
   BookUser,
@@ -31,8 +30,127 @@ import {
   Settings,
 } from 'lucide-react';
 
+// Route wrapper components to pass context props down to existing tab views
+export function OverviewRoute() {
+  const { records, recordsLoading, recordsError } = useOutletContext();
+  if (recordsError) {
+    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
+  }
+  if (recordsLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  return <Overview records={records || []} />;
+}
+
+export function InvoiceTotalRoute() {
+  const { summary, records, recordsError, recordsLoading } = useOutletContext();
+  return (
+    <InvoiceTotal
+      summary={summary}
+      records={records}
+      recordsError={recordsError}
+      recordsLoading={recordsLoading}
+    />
+  );
+}
+
+export function CashInHandRoute() {
+  const { records, recordsLoading, recordsError } = useOutletContext();
+  if (recordsError) {
+    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
+  }
+  if (recordsLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  return <CashInHand records={records || []} />;
+}
+
+export function VarianceRoute() {
+  const { records } = useOutletContext();
+  return <Variance records={records} />;
+}
+
+export function MonthlySummaryRoute() {
+  const { records, recordsLoading, recordsError } = useOutletContext();
+  if (recordsError) {
+    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
+  }
+  if (recordsLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  return <MonthlySummary records={records || []} />;
+}
+
+export function CostCentersRoute() {
+  const { records, recordsError, recordsLoading } = useOutletContext();
+  return (
+    <CostCenters
+      records={records}
+      recordsError={recordsError}
+      recordsLoading={recordsLoading}
+    />
+  );
+}
+
+export function ForecastRoute() {
+  const { records, recordsLoading, recordsError } = useOutletContext();
+  if (recordsError) {
+    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
+  }
+  if (recordsLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  return <Forecast records={records || []} />;
+}
+
+export function ImportedDataRoute() {
+  const { records, recordsLoading, recordsError, handleDeleteSuccess, refreshTrigger } = useOutletContext();
+  return (
+    <ImportedDataPage
+      records={records || []}
+      loading={recordsLoading}
+      error={recordsError}
+      onDeleteSuccess={handleDeleteSuccess}
+      refreshTrigger={refreshTrigger}
+    />
+  );
+}
+
+export function ImportExcelFileRoute() {
+  const { handleImportSuccess } = useOutletContext();
+  return <ImportExcelFile onImportSuccess={handleImportSuccess} />;
+}
+
+export function AccountantDataRoute() {
+  const { refreshTrigger } = useOutletContext();
+  return <AccountantImportedData refreshTrigger={refreshTrigger} />;
+}
+
+export function AccountantImportRoute() {
+  const { handleAccountantImportSuccess } = useOutletContext();
+  return <AccountantImport onImportSuccess={handleAccountantImportSuccess} />;
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   // Keep transactions for backwards compatibility with summary cards if needed
   const { transactions } = useTransactions();
@@ -40,18 +158,16 @@ export default function Dashboard() {
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { records, loading: recordsLoading, error: recordsError } = useRecords(refreshTrigger);
-  
-  const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? 'ADMIN PANEL' : 'OVERVIEW');
 
   const handleImportSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
-    setActiveTab('Imported Data');
-  }, []);
+    navigate('/imported-data');
+  }, [navigate]);
 
   const handleAccountantImportSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
-    setActiveTab('Accountant Data');
-  }, []);
+    navigate('/accountant-data');
+  }, [navigate]);
 
   const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -59,26 +175,32 @@ export default function Dashboard() {
 
   const menuItems = useMemo(() => {
     if (user?.role === 'admin') {
-      return [{ label: 'ADMIN PANEL', icon: Settings }];
+      return [{ label: 'ADMIN PANEL', icon: Settings, path: '/admin' }];
     }
     
     return [
-      { label: 'OVERVIEW', icon: LayoutDashboard },
-      { label: 'INVOICE TOTAL', icon: ReceiptText },
-      { label: 'CASH IN HAND', icon: HandCoins },
-      { label: 'VARIANCE', icon: PieChart },
-      { label: 'Monthly Summary', icon: BarChart3 },
-      { label: 'Cost Centers', icon: Grid2x2 },
-      { label: 'Forecast', icon: Gauge },
-      { label: 'Accountant Details', icon: BookUser },
-      { label: 'Imported Data', icon: FileSpreadsheet },
-      { label: 'Import Excel File', icon: Upload },
-      { label: 'Accountant Data', icon: FileSpreadsheet },
-      { label: 'Accountant Import', icon: Upload },
+      { label: 'OVERVIEW', icon: LayoutDashboard, path: '/overview' },
+      { label: 'INVOICE TOTAL', icon: ReceiptText, path: '/invoice-total' },
+      { label: 'CASH IN HAND', icon: HandCoins, path: '/cash-in-hand' },
+      { label: 'VARIANCE', icon: PieChart, path: '/variance' },
+      { label: 'Monthly Summary', icon: BarChart3, path: '/monthly-summary' },
+      { label: 'Cost Centers', icon: Grid2x2, path: '/cost-centers' },
+      { label: 'Forecast', icon: Gauge, path: '/forecast' },
+      { label: 'Accountant Details', icon: BookUser, path: '/accountant-details' },
+      { label: 'Imported Data', icon: FileSpreadsheet, path: '/imported-data' },
+      { label: 'Import Excel File', icon: Upload, path: '/import-excel' },
+      { label: 'Accountant Data', icon: FileSpreadsheet, path: '/accountant-data' },
+      { label: 'Accountant Import', icon: Upload, path: '/accountant-import' },
     ];
   }, [user?.role]);
 
-  const pageTitle = activeTab;
+  const currentMenuItem = useMemo(() => {
+    return menuItems.find(item => 
+      item.path === location.pathname || (item.path === '/overview' && location.pathname === '/')
+    );
+  }, [menuItems, location.pathname]);
+
+  const pageTitle = currentMenuItem ? currentMenuItem.label : 'Dashboard';
 
   return (
     <div className="min-h-screen flex bg-slate-100 text-slate-900">
@@ -104,12 +226,12 @@ export default function Dashboard() {
                 Main Menu
               </p>
               <div className="space-y-1">
-                {menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label)).map(({ label, icon: Icon }) => {
-                  const isActive = activeTab === label;
+                {menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label)).map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
                   return (
-                    <button
+                    <Link
                       key={label}
-                      onClick={() => setActiveTab(label)}
+                      to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/10'
@@ -121,7 +243,7 @@ export default function Dashboard() {
                       {isActive && (
                         <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
                       )}
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -135,13 +257,13 @@ export default function Dashboard() {
                 Data Management
               </p>
               <div className="space-y-1">
-                {menuItems.filter(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label)).map(({ label, icon: Icon }) => {
-                  const isActive = activeTab === label;
+                {menuItems.filter(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label)).map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
                   const isAccountant = label.includes('Accountant');
                   return (
-                    <button
+                    <Link
                       key={label}
-                      onClick={() => setActiveTab(label)}
+                      to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
                         isActive
                           ? isAccountant 
@@ -155,7 +277,7 @@ export default function Dashboard() {
                       {isActive && (
                         <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
                       )}
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -169,12 +291,12 @@ export default function Dashboard() {
                 Administration
               </p>
               <div className="space-y-1">
-                {menuItems.filter(item => item.label === 'ADMIN PANEL').map(({ label, icon: Icon }) => {
-                  const isActive = activeTab === label;
+                {menuItems.filter(item => item.label === 'ADMIN PANEL').map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
                   return (
-                    <button
+                    <Link
                       key={label}
-                      onClick={() => setActiveTab(label)}
+                      to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
                         isActive
                           ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-900/50 ring-1 ring-white/10'
@@ -186,7 +308,7 @@ export default function Dashboard() {
                       {isActive && (
                         <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
                       )}
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -239,98 +361,38 @@ export default function Dashboard() {
 
         <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
           <div className="flex gap-2 min-w-max">
-            {menuItems.map(({ label }) => (
-              <button
-                key={label}
-                onClick={() => setActiveTab(label)}
-                className={`px-3 py-2 rounded-lg text-xs font-bold border ${
-                  activeTab === label
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-slate-600 border-slate-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            {menuItems.map(({ label, path }) => {
+              const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
+              return (
+                <Link
+                  key={label}
+                  to={path}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold border ${
+                    isActive
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200'
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
         </div>
 
         <main className="flex-1 px-5 py-4 md:px-8 md:py-5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
-            {activeTab === 'Import Excel File' ? (
-              <ImportExcelFile onImportSuccess={handleImportSuccess} />
-            ) : activeTab === 'Imported Data' ? (
-              <ImportedDataPage
-                records={records || []}
-                loading={recordsLoading}
-                error={recordsError}
-                onDeleteSuccess={handleDeleteSuccess}
-                refreshTrigger={refreshTrigger}
-              />
-            ) : activeTab === 'Accountant Import' ? (
-              <AccountantImport onImportSuccess={handleAccountantImportSuccess} />
-            ) : activeTab === 'Accountant Data' ? (
-              <AccountantImportedData refreshTrigger={refreshTrigger} />
-            ) : activeTab === 'Accountant Details' ? (
-              <AccountantDetails />
-            ) : activeTab === 'Forecast' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <Forecast records={records || []} />
-              )
-            ) : activeTab === 'OVERVIEW' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <Overview records={records || []} />
-              )
-            ) : activeTab === 'CASH IN HAND' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <CashInHand records={records || []} />
-              )
-            ) : activeTab === 'Monthly Summary' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <MonthlySummary records={records || []} />
-              )
-            ) : activeTab === 'VARIANCE' ? (
-              <Variance records={records} />
-            ) : activeTab === 'Cost Centers' ? (
-              <CostCenters
-                records={records}
-                recordsError={recordsError}
-                recordsLoading={recordsLoading}
-              />
-            ) : activeTab === 'ADMIN PANEL' ? (
-              <AdminPanel />
-            ) : (
-              <InvoiceTotal
-                summary={summary}
-                records={records}
-                recordsError={recordsError}
-                recordsLoading={recordsLoading}
-              />
-            )}
+            <Outlet context={{
+              records,
+              summary,
+              recordsLoading,
+              recordsError,
+              refreshTrigger,
+              setRefreshTrigger,
+              handleImportSuccess,
+              handleAccountantImportSuccess,
+              handleDeleteSuccess
+            }} />
           </div>
         </main>
       </div>
