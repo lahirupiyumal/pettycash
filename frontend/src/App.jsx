@@ -14,8 +14,8 @@ import Dashboard, {
   ImportExcelFileRoute,
   AccountantDataRoute,
   AccountantImportRoute,
+  AccountantDetailsRoute,
 } from './pages/Dashboard';
-import AccountantDetails from './pages/AccountantDetails';
 import AdminPanel from './components/AdminPanel';
 
 const PrivateRoute = ({ children }) => {
@@ -48,7 +48,7 @@ export default function App() {
             <Route path="monthly-summary" element={<MonthlySummaryRoute />} />
             <Route path="cost-centers" element={<CostCentersRoute />} />
             <Route path="forecast" element={<ForecastRoute />} />
-            <Route path="accountant-details" element={<AccountantDetails />} />
+            <Route path="accountant-details" element={<AccountantDetailsRoute />} />
             
             {/* Data Management Routes */}
             <Route path="imported-data" element={<ImportedDataRoute />} />
