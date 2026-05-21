@@ -2,12 +2,31 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Dashboard, {
+  OverviewRoute,
+  InvoiceTotalRoute,
+  CashInHandRoute,
+  VarianceRoute,
+  MonthlySummaryRoute,
+  CostCentersRoute,
+  ForecastRoute,
+  ImportedDataRoute,
+  ImportExcelFileRoute,
+  AccountantDataRoute,
+  AccountantImportRoute,
+} from './pages/Dashboard';
+import AccountantDetails from './pages/AccountantDetails';
+import AdminPanel from './components/AdminPanel';
 
 const PrivateRoute = ({ children }) => {
   const { token } = useAuth();
   return token ? children : <Navigate to="/login" replace />;
 };
+
+function DashboardIndex() {
+  const { user } = useAuth();
+  return <Navigate to={user?.role === 'admin' ? '/admin' : '/overview'} replace />;
+}
 
 export default function App() {
   return (
@@ -16,9 +35,33 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          
+          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>}>
+            {/* Dynamic Index Route based on role */}
+            <Route index element={<DashboardIndex />} />
+            
+            {/* Main Menu Routes */}
+            <Route path="overview" element={<OverviewRoute />} />
+            <Route path="invoice-total" element={<InvoiceTotalRoute />} />
+            <Route path="cash-in-hand" element={<CashInHandRoute />} />
+            <Route path="variance" element={<VarianceRoute />} />
+            <Route path="monthly-summary" element={<MonthlySummaryRoute />} />
+            <Route path="cost-centers" element={<CostCentersRoute />} />
+            <Route path="forecast" element={<ForecastRoute />} />
+            <Route path="accountant-details" element={<AccountantDetails />} />
+            
+            {/* Data Management Routes */}
+            <Route path="imported-data" element={<ImportedDataRoute />} />
+            <Route path="import-excel" element={<ImportExcelFileRoute />} />
+            <Route path="accountant-data" element={<AccountantDataRoute />} />
+            <Route path="accountant-import" element={<AccountantImportRoute />} />
+            
+            {/* Admin Panel Route */}
+            <Route path="admin" element={<AdminPanel />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
 }
+
