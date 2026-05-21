@@ -15,7 +15,7 @@ import InvoiceTotal from '../components/InvoiceTotal';
 import CostCenters from '../components/CostCenters';
 import AccountantImport from './AccountantImport';
 import AccountantImportedData from './AccountantImportedData';
-import AccountantDetails from './AccountantDetails';
+import AccountantProgressAnalytics from './AccountantProgressAnalytics';
 import {
   BarChart3,
   BookUser,
@@ -146,6 +146,11 @@ export function AccountantDataRoute() {
 export function AccountantImportRoute() {
   const { handleAccountantImportSuccess } = useOutletContext();
   return <AccountantImport onImportSuccess={handleAccountantImportSuccess} />;
+}
+
+export function AccountantDetailsRoute() {
+  const { refreshTrigger } = useOutletContext();
+  return <AccountantProgressAnalytics refreshTrigger={refreshTrigger} />;
 }
 
 export default function Dashboard() {
@@ -378,80 +383,18 @@ export default function Dashboard() {
 
         <main className="flex-1 px-5 py-4 md:px-8 md:py-5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
-            {activeTab === 'Import Excel File' ? (
-              <ImportExcelFile onImportSuccess={handleImportSuccess} />
-            ) : activeTab === 'Imported Data' ? (
-              <ImportedDataPage
-                records={records || []}
-                loading={recordsLoading}
-                error={recordsError}
-                onDeleteSuccess={handleDeleteSuccess}
-                refreshTrigger={refreshTrigger}
-              />
-            ) : activeTab === 'Accountant Import' ? (
-              <AccountantImport onImportSuccess={handleAccountantImportSuccess} />
-            ) : activeTab === 'Accountant Data' ? (
-              <AccountantImportedData refreshTrigger={refreshTrigger} />
-            ) : activeTab === 'Accountant Details' ? (
-              <AccountantDetails />
-            ) : activeTab === 'Forecast' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <Forecast records={records || []} />
-              )
-            ) : activeTab === 'OVERVIEW' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <Overview records={records || []} />
-              )
-            ) : activeTab === 'CASH IN HAND' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <CashInHand records={records || []} />
-              )
-            ) : activeTab === 'Monthly Summary' ? (
-              recordsError ? (
-                <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>
-              ) : recordsLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <MonthlySummary records={records || []} />
-              )
-            ) : activeTab === 'VARIANCE' ? (
-              <Variance records={records} />
-            ) : activeTab === 'Cost Centers' ? (
-              <CostCenters
-                records={records}
-                recordsError={recordsError}
-                recordsLoading={recordsLoading}
-              />
-            ) : activeTab === 'ADMIN PANEL' ? (
-              <AdminPanel />
-            ) : (
-              <InvoiceTotal
-                summary={summary}
-                records={records}
-                recordsError={recordsError}
-                recordsLoading={recordsLoading}
-              />
-            )}
+            <Outlet
+              context={{
+                summary,
+                records,
+                recordsLoading,
+                recordsError,
+                refreshTrigger,
+                handleImportSuccess,
+                handleAccountantImportSuccess,
+                handleDeleteSuccess,
+              }}
+            />
           </div>
         </main>
       </div>
