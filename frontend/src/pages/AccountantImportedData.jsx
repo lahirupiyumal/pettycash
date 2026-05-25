@@ -54,7 +54,7 @@ export default function AccountantImportedData({ refreshTrigger = 0 }) {
       }
     };
     fetchRecords();
-  }, [selectedFileId]);
+  }, [selectedFileId, refreshTrigger]);
 
   const handleCardDelete = async (e, file) => {
     e.stopPropagation();
