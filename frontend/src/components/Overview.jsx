@@ -11,7 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Layers3, PieChart as PieChartIcon, Sparkles, TrendingUp } from 'lucide-react';
+import { FileDown, Layers3, PieChart as PieChartIcon, Sparkles, TrendingUp } from 'lucide-react';
 
 const CARD_ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#f59e0b', '#dc2626'];
 const MONTHS = [
@@ -51,6 +51,30 @@ function formatNumber(value) {
 
 function formatCardNumber(value) {
   return Number(value || 0).toLocaleString('en-US');
+}
+
+function escapeCsvValue(value) {
+  const text = value == null ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function formatExportNumber(value) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue.toLocaleString('en-LK') : '';
+}
+
+function buildExportFileName(prefix, extension, selectedYear) {
+  const safePrefix = String(prefix || 'export')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'export';
+  const safeYear = String(selectedYear || 'all')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'all';
+  return `${safePrefix}-${safeYear}.${extension}`;
 }
 
 function normalizeMonth(monthValue) {
@@ -102,6 +126,8 @@ export default function Overview({ records = [] }) {
     );
   }, [filteredRecords]);
 
+  const selectedYearLabel = selectedYear === 'All' ? 'All Time' : String(selectedYear);
+
   const regionTrendData = useMemo(() => {
     const regionMap = new Map();
 
@@ -146,6 +172,7 @@ export default function Overview({ records = [] }) {
           cashInHand: 0,
           invoiceAmount: 0,
           utilization: 0,
+          variance: 0,
         });
       }
 
@@ -154,6 +181,7 @@ export default function Overview({ records = [] }) {
       row.cashInHand += Number(record.cashInHand) || 0;
       row.invoiceAmount += Number(record.invoiceAmount) || 0;
       row.utilization += Number(record.utilization) || 0;
+      row.variance += Number(record.variance) || 0;
     });
 
     return [...trendMap.values()].sort((a, b) => {
@@ -177,6 +205,35 @@ export default function Overview({ records = [] }) {
       .map((item) => item.label);
   }, [monthlyTrendData]);
 
+  const exportReady = filteredRecords.length > 0;
+
+  function handleMonthlyCsvExport() {
+    if (!exportReady) return;
+
+    const headers = ['Year', 'Month', 'Total Cash In Hand', 'Total Invoice Amount', 'Total Expenses', 'Total Variance'];
+    const rows = monthlyTrendData.map((item) => [
+      item.year,
+      MONTHS[item.monthIndex],
+      item.cashInHand,
+      item.invoiceAmount,
+      item.utilization,
+      item.variance,
+    ]);
+
+    const csvContent = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = buildExportFileName('overview-monthly-export', 'csv', selectedYearLabel);
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   const cards = [
     { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3, tint: 'bg-blue-50 text-blue-600 ring-blue-100' },
     { label: 'Total Cash In Hand', value: totals.cashInHand, icon: Sparkles, tint: 'bg-teal-50 text-teal-600 ring-teal-100' },
@@ -187,8 +244,8 @@ export default function Overview({ records = [] }) {
 
   return (
     <div className="space-y-6 rounded-[2rem] bg-transparent">
-      <div className="flex justify-end">
-        <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 w-fit">
           <label htmlFor="yearFilter" className="text-xs font-bold uppercase tracking-widest text-slate-500">Year:</label>
           <select
             id="yearFilter"
@@ -201,6 +258,18 @@ export default function Overview({ records = [] }) {
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleMonthlyCsvExport}
+            disabled={!exportReady}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FileDown className="h-4 w-4" />
+            CSV Export
+          </button>
         </div>
       </div>
 
