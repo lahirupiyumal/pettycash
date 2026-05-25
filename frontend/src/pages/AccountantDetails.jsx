@@ -37,18 +37,25 @@ function monthIndex(m) {
 }
 
 // ── sub-components ─────────────────────────────────────────────────────────
-function StatCard({ icon: Icon, label, value, gradient, iconBg }) {
+function StatCard({ icon: Icon, label, value, accent, tint }) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow duration-200`}>
-      {/* accent strip */}
-      <div className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl ${gradient}`} />
-      <div className="flex items-center gap-4 pt-2">
-        <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className="h-5 w-5 text-white" strokeWidth={1.8} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
-          <p className="text-2xl font-black text-slate-900 tabular-nums leading-none">{value}</p>
+    <div className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/30">
+      <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: accent }} />
+      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-10 transition-transform duration-300 group-hover:scale-125" style={{ backgroundColor: accent }} />
+      <div className="relative px-5 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="mb-3 min-h-[2rem] text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 leading-snug">{label}</p>
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-blue-700">LKR</span>
+              <p className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950 tabular-nums">
+                {value.toLocaleString?.() ?? value}
+              </p>
+            </div>
+          </div>
+          <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 transition-transform duration-300 group-hover:scale-105 ${tint}`}>
+            <Icon className="h-5 w-5" strokeWidth={2.4} />
+          </div>
         </div>
       </div>
     </div>
@@ -351,34 +358,34 @@ export default function AccountantDetails() {
       </div>
 
       {/* ── Stat cards ── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={FileSpreadsheet}
           label="Total Records"
-          value={stats.total.toLocaleString()}
-          gradient="bg-gradient-to-r from-indigo-500 to-purple-500"
-          iconBg="bg-gradient-to-br from-indigo-500 to-purple-600"
+          value={stats.total}
+          accent="#4f46e5"
+          tint="bg-blue-50 text-blue-600 ring-blue-100"
         />
         <StatCard
           icon={MapPin}
           label="Regions"
           value={stats.regions}
-          gradient="bg-gradient-to-r from-blue-500 to-cyan-500"
-          iconBg="bg-gradient-to-br from-blue-500 to-cyan-600"
+          accent="#0f766e"
+          tint="bg-teal-50 text-teal-600 ring-teal-100"
         />
         <StatCard
           icon={Building2}
           label="Cost Centers"
           value={stats.costCenters}
-          gradient="bg-gradient-to-r from-emerald-500 to-teal-500"
-          iconBg="bg-gradient-to-br from-emerald-500 to-teal-600"
+          accent="#7c3aed"
+          tint="bg-violet-50 text-violet-600 ring-violet-100"
         />
         <StatCard
           icon={CalendarDays}
           label="Latest Year"
           value={stats.latestYear}
-          gradient="bg-gradient-to-r from-orange-400 to-rose-500"
-          iconBg="bg-gradient-to-br from-orange-400 to-rose-500"
+          accent="#f59e0b"
+          tint="bg-amber-50 text-amber-600 ring-amber-100"
         />
       </div>
 
