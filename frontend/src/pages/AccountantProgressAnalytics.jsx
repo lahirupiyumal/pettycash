@@ -39,6 +39,7 @@ const MONTH_LOOKUP = {
   oct: 'October', october: 'October', nov: 'November', november: 'November', dec: 'December', december: 'December',
 };
 
+const CARD_ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#f59e0b', '#dc2626'];
 const COLORS = ['#2563eb', '#7c3aed', '#059669', '#dc2626', '#d97706', '#0891b2', '#db2777', '#4f46e5', '#16a34a', '#ea580c'];
 
 function normalizeMonth(month) {
@@ -210,6 +211,8 @@ function buildAccountantGroups(records) {
 }
 
 function StatCard({ icon: Icon, title, value, accent, tint }) {
+  const displayValue = typeof value === 'number' ? value.toLocaleString('en-US') : value;
+
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/30">
       <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: accent }} />
@@ -219,8 +222,10 @@ function StatCard({ icon: Icon, title, value, accent, tint }) {
           <div className="min-w-0">
             <p className="mb-3 min-h-[2rem] text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 leading-snug">{title}</p>
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-blue-700">LKR</span>
-              <p className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950 tabular-nums">{value}</p>
+              <span className="rounded-md bg-slate-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-slate-700 ring-1 ring-slate-200">KPI</span>
+              <p className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950 tabular-nums">
+                {displayValue}
+              </p>
             </div>
           </div>
           <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 transition-transform duration-300 group-hover:scale-105 ${tint}`}>
@@ -753,10 +758,10 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount.toLocaleString()} accent="#2563eb" tint="bg-blue-50 text-blue-600 ring-blue-100" />
-        <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned.toLocaleString()} accent="#7c3aed" tint="bg-violet-50 text-violet-600 ring-violet-100" />
-        <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed.toLocaleString()} accent="#059669" tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
-        <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending.toLocaleString()} accent="#f59e0b" tint="bg-amber-50 text-amber-600 ring-amber-100" />
+        <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount} accent={CARD_ACCENTS[0]} tint="bg-blue-50 text-blue-600 ring-blue-100" />
+        <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned} accent={CARD_ACCENTS[1]} tint="bg-violet-50 text-violet-600 ring-violet-100" />
+        <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed} accent={CARD_ACCENTS[2]} tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
+        <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending} accent={CARD_ACCENTS[4]} tint="bg-amber-50 text-amber-600 ring-amber-100" />
         <StatCard icon={TrendingUp} title="Overall Completion %" value={formatPercent(summary.overall)} accent="#0ea5e9" tint="bg-sky-50 text-sky-600 ring-sky-100" />
       </div>
 
