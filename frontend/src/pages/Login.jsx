@@ -10,6 +10,10 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const handleMicrosoftLogin = () => {
+    window.location.href = '/api/auth/microsoft';
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
@@ -91,6 +95,26 @@ export default function Login() {
                 {loading ? 'Authenticating...' : ' Sign In'}
               </button>
             </form>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">or</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleMicrosoftLogin}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3.5 font-bold text-slate-700 shadow-sm transition-all duration-300 hover:border-slate-400 hover:bg-slate-50 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-slate-100"
+            >
+              <span className="grid h-5 w-5 grid-cols-2 gap-0.5" aria-hidden="true">
+                <span className="bg-[#f25022]" />
+                <span className="bg-[#7fba00]" />
+                <span className="bg-[#00a4ef]" />
+                <span className="bg-[#ffb900]" />
+              </span>
+              Log in with Microsoft
+            </button>
 
             <div className="mt-8 border-t border-slate-200 pt-6 text-center">
               <p className="text-sm text-slate-500">
