@@ -209,14 +209,25 @@ function buildAccountantGroups(records) {
   });
 }
 
-function StatCard({ icon: Icon, title, value, tone }) {
+function StatCard({ icon: Icon, title, value, accent, tint }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${tone.bg}`}>
-        <Icon className={`h-5 w-5 ${tone.fg}`} strokeWidth={1.9} />
+    <div className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/30">
+      <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: accent }} />
+      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-10 transition-transform duration-300 group-hover:scale-125" style={{ backgroundColor: accent }} />
+      <div className="relative px-5 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="mb-3 min-h-[2rem] text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 leading-snug">{title}</p>
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-blue-700">LKR</span>
+              <p className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950 tabular-nums">{value}</p>
+            </div>
+          </div>
+          <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 transition-transform duration-300 group-hover:scale-105 ${tint}`}>
+            <Icon className="h-5 w-5" strokeWidth={2.4} />
+          </div>
+        </div>
       </div>
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-400">{title}</p>
-      <p className="mt-2 text-2xl font-black text-slate-900 tabular-nums">{value}</p>
     </div>
   );
 }
@@ -741,12 +752,12 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount.toLocaleString()} tone={{ bg: 'bg-blue-50', fg: 'text-blue-600' }} />
-        <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned.toLocaleString()} tone={{ bg: 'bg-violet-50', fg: 'text-violet-600' }} />
-        <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed.toLocaleString()} tone={{ bg: 'bg-emerald-50', fg: 'text-emerald-600' }} />
-        <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending.toLocaleString()} tone={{ bg: 'bg-amber-50', fg: 'text-amber-600' }} />
-        <StatCard icon={TrendingUp} title="Overall Completion %" value={formatPercent(summary.overall)} tone={{ bg: 'bg-sky-50', fg: 'text-sky-600' }} />
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount.toLocaleString()} accent="#2563eb" tint="bg-blue-50 text-blue-600 ring-blue-100" />
+        <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned.toLocaleString()} accent="#7c3aed" tint="bg-violet-50 text-violet-600 ring-violet-100" />
+        <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed.toLocaleString()} accent="#059669" tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
+        <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending.toLocaleString()} accent="#f59e0b" tint="bg-amber-50 text-amber-600 ring-amber-100" />
+        <StatCard icon={TrendingUp} title="Overall Completion %" value={formatPercent(summary.overall)} accent="#0ea5e9" tint="bg-sky-50 text-sky-600 ring-sky-100" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
