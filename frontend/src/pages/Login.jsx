@@ -37,7 +37,7 @@ export default function Login() {
   }, [location.search, login, navigate]);
 
   const handleMicrosoftLogin = () => {
-    const backendBaseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+    const backendBaseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001').replace(/\/$/, '');
     window.location.href = `${backendBaseUrl}/api/auth/microsoft`;
   };
 
