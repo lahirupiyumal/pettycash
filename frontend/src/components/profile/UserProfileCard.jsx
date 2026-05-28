@@ -66,7 +66,7 @@ export default function UserProfileCard({ user, loading = false, onEdit }) {
 
             <p className="mt-4 text-sm text-slate-600">{user?.bio || 'No bio provided.'}</p>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
                 <div className="text-sm font-medium text-slate-600">Role</div>
                 <div className="mt-1 text-lg font-semibold text-slate-900">{user?.role || 'Accountant'}</div>
@@ -80,11 +80,6 @@ export default function UserProfileCard({ user, loading = false, onEdit }) {
               <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
                 <div className="text-sm font-medium text-slate-600">Joined</div>
                 <div className="mt-1 text-lg font-semibold text-slate-900">{user?.joinedDate ? new Date(user.joinedDate).toLocaleDateString() : '—'}</div>
-              </div>
-
-              <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
-                <div className="text-sm font-medium text-slate-600">Transactions</div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">{user?.transactionCount ?? '0'}</div>
               </div>
             </div>
           </div>
