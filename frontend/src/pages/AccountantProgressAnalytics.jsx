@@ -803,13 +803,6 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
             <h2 className="mt-1 text-xl font-black text-slate-900">Yearly cumulative progress line chart</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
-            </select>
-            <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              <option value="all">All Months</option>
-              {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
-            </select>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
               <button onClick={() => setChartMode('count')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'count' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completed Count</button>
               <button onClick={() => setChartMode('percent')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'percent' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completion %</button>
@@ -838,13 +831,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
               {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
             </select>
           </div>
-          <div>
-            <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Month</label>
-            <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              <option value="all">All Months</option>
-              {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
-            </select>
-          </div>
+          
         </div>
 
         <div className="px-4 py-4 sm:px-6">
@@ -880,7 +867,11 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
             <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant Progress Table</p>
             <h2 className="mt-1 text-xl font-black text-slate-900">Sortable progress tracking</h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
+              <option value="all">All Months</option>
+              {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
+            </select>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search accountant or region" className="w-[260px] rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400" />
@@ -914,7 +905,6 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                 ))}
                 <th className="px-5 py-3">Progress Bar</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -932,16 +922,11 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                     </div>
                   </td>
                   <td className="px-5 py-4"><StatusPill status={group.status} /></td>
-                  <td className="px-5 py-4">
-                    <button onClick={() => setActiveAccountantKey(group.key)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">
-                      View
-                    </button>
-                  </td>
                 </tr>
               ))}
               {visibleGroups.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="px-5 py-12 text-center text-sm text-slate-500">No accountants match the current filters.</td>
+                  <td colSpan="8" className="px-5 py-12 text-center text-sm text-slate-500">No accountants match the current filters.</td>
                 </tr>
               )}
             </tbody>
