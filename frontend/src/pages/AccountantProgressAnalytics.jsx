@@ -349,7 +349,7 @@ function buildInsights(groups, selectedYear, selectedMonth) {
   const lowestRegion = regionStats[regionStats.length - 1];
 
   const monthlyActivity = MONTHS.map((monthName, monthNumber) => {
-      const count = withProgress.reduce((sum, group) => sum + [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber === monthNumber && isVisitWithinScope(visit, yearValue, selectedMonth)).length, 0);
+    const count = withProgress.reduce((sum, group) => sum + [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber === monthNumber && isVisitWithinScope(visit, yearValue, selectedMonth)).length, 0);
     return { month: monthName, count };
   }).sort((a, b) => b.count - a.count)[0];
 
@@ -671,7 +671,6 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
         row[regionName] = displayGroups
           .filter((group) => group.regionCode === regionName)
           .reduce((sum, group) => sum + group.visits.filter((visit) => {
-            // only count visits from the selected year up to this month
             if (!visit.yearNumber) return false;
             return visit.yearNumber === yearValue && visit.monthNumber <= monthNumber;
           }).length, 0);
@@ -685,6 +684,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
     const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
     return buildInsights(displayGroups, yearValue, selectedMonth);
   }, [displayGroups, selectedYear, selectedMonth, availableYears]);
+ 
 
   const detailedRecords = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -725,6 +725,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const clearFilters = () => {
     setSelectedRegion('all');
     setSelectedAccountant('all');
+    setSelectedMonth('all');
     setSelectedMonth('all');
     setSearchQuery('');
     setCurrentPage(1);
@@ -804,6 +805,10 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
           <div className="flex flex-wrap items-center gap-2">
             <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
               {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
+              <option value="all">All Months</option>
+              {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
             </select>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
               <button onClick={() => setChartMode('count')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'count' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completed Count</button>
