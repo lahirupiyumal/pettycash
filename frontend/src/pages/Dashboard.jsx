@@ -417,18 +417,22 @@ export default function Dashboard() {
 
         <main className="flex-1 px-5 py-4 md:px-8 md:py-5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
-            <Outlet
-              context={{
-                summary,
-                records,
-                recordsLoading,
-                recordsError,
-                refreshTrigger,
-                handleImportSuccess,
-                handleAccountantImportSuccess,
-                handleDeleteSuccess,
-              }}
-            />
+            {location.pathname === '/accountant-details' ? (
+              <AccountantProgressAnalytics refreshTrigger={refreshTrigger} />
+            ) : (
+              <Outlet
+                context={{
+                  summary,
+                  records,
+                  recordsLoading,
+                  recordsError,
+                  refreshTrigger,
+                  handleImportSuccess,
+                  handleAccountantImportSuccess,
+                  handleDeleteSuccess,
+                }}
+              />
+            )}
           </div>
         </main>
       </div>

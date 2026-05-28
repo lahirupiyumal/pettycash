@@ -39,6 +39,7 @@ const MONTH_LOOKUP = {
   oct: 'October', october: 'October', nov: 'November', november: 'November', dec: 'December', december: 'December',
 };
 
+const CARD_ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#f59e0b', '#dc2626'];
 const COLORS = ['#2563eb', '#7c3aed', '#059669', '#dc2626', '#d97706', '#0891b2', '#db2777', '#4f46e5', '#16a34a', '#ea580c'];
 
 function normalizeMonth(month) {
@@ -49,6 +50,27 @@ function normalizeMonth(month) {
 
 function monthIndex(month) {
   return MONTHS.indexOf(normalizeMonth(month));
+}
+
+function isVisitWithinScope(visit, yearValue, selectedMonth) {
+  if (!visit.yearNumber || visit.yearNumber !== yearValue) {
+    return false;
+  }
+
+  if (selectedMonth === 'all') {
+    return true;
+  }
+
+  const selectedMonthIndex = monthIndex(selectedMonth);
+  if (selectedMonthIndex < 0) {
+    return true;
+  }
+
+  return visit.monthNumber <= selectedMonthIndex;
+}
+
+function getScopedVisitCount(visits, yearValue, selectedMonth) {
+  return visits.filter((visit) => isVisitWithinScope(visit, yearValue, selectedMonth)).length;
 }
 
 function parseLabel(label) {
@@ -210,6 +232,8 @@ function buildAccountantGroups(records) {
 }
 
 function StatCard({ icon: Icon, title, value, accent, tint }) {
+  const displayValue = typeof value === 'number' ? value.toLocaleString('en-US') : value;
+
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/30">
       <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: accent }} />
@@ -219,8 +243,10 @@ function StatCard({ icon: Icon, title, value, accent, tint }) {
           <div className="min-w-0">
             <p className="mb-3 min-h-[2rem] text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 leading-snug">{title}</p>
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-blue-700">LKR</span>
-              <p className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950 tabular-nums">{value}</p>
+              <span className="rounded-md bg-slate-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-slate-700 ring-1 ring-slate-200">KPI</span>
+              <p className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950 tabular-nums">
+                {displayValue}
+              </p>
             </div>
           </div>
           <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 transition-transform duration-300 group-hover:scale-105 ${tint}`}>
@@ -276,7 +302,7 @@ function buildSeriesData(groups, selectedYear, scope) {
   });
 }
 
-function buildRegionStats(groups, selectedYear) {
+function buildRegionStats(groups, selectedYear, selectedMonth) {
   const yearValue = Number(selectedYear);
   const regionMap = new Map();
 
@@ -292,10 +318,10 @@ function buildRegionStats(groups, selectedYear) {
     }
 
     const entry = regionMap.get(group.regionCode);
-    const completedThisYear = [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue).length;
+    const completedThisPeriod = getScopedVisitCount([...group.firstCompletedByCode.values()], yearValue, selectedMonth);
     entry.assigned += group.assignedCount;
-    entry.completed += completedThisYear;
-    entry.pending += Math.max(group.assignedCount - completedThisYear, 0);
+    entry.completed += completedThisPeriod;
+    entry.pending += Math.max(group.assignedCount - completedThisPeriod, 0);
     entry.groups.push(group);
   });
 
@@ -305,12 +331,12 @@ function buildRegionStats(groups, selectedYear) {
   }));
 }
 
-function buildInsights(groups, selectedYear) {
+function buildInsights(groups, selectedYear, selectedMonth) {
   if (!groups.length) return [];
 
   const yearValue = Number(selectedYear);
   const withProgress = groups.map((group) => {
-    const completed = [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue).length;
+    const completed = getScopedVisitCount([...group.firstCompletedByCode.values()], yearValue, selectedMonth);
     const percent = group.assignedCount ? (completed / group.assignedCount) * 100 : 0;
     return { ...group, completed, percent };
   });
@@ -318,19 +344,19 @@ function buildInsights(groups, selectedYear) {
   const bestAccountant = [...withProgress].sort((a, b) => b.percent - a.percent)[0];
   const lowestAccountant = [...withProgress].sort((a, b) => a.percent - b.percent)[0];
 
-  const regionStats = buildRegionStats(groups, selectedYear).sort((a, b) => b.completionPercent - a.completionPercent);
+  const regionStats = buildRegionStats(groups, selectedYear, selectedMonth).sort((a, b) => b.completionPercent - a.completionPercent);
   const bestRegion = regionStats[0];
   const lowestRegion = regionStats[regionStats.length - 1];
 
   const monthlyActivity = MONTHS.map((monthName, monthNumber) => {
-    const count = withProgress.reduce((sum, group) => sum + [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber === monthNumber).length, 0);
+    const count = withProgress.reduce((sum, group) => sum + [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber === monthNumber && isVisitWithinScope(visit, yearValue, selectedMonth)).length, 0);
     return { month: monthName, count };
   }).sort((a, b) => b.count - a.count)[0];
 
   const fastestGrowth = withProgress
     .map((group) => {
       // build cumulative monthly series for the selected year only
-      const monthSeries = MONTHS.map((_, monthNumber) => [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber <= monthNumber).length);
+      const monthSeries = MONTHS.map((_, monthNumber) => [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber <= monthNumber && isVisitWithinScope(visit, yearValue, selectedMonth)).length);
       const delta = monthSeries.reduce((max, value, index) => {
         if (index === 0) return max;
         return Math.max(max, value - monthSeries[index - 1]);
@@ -487,10 +513,11 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const [error, setError] = useState('');
   const [records, setRecords] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [selectedAccountant, setSelectedAccountant] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'completionPercent', dir: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'progressAsOfPeriod', dir: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const [chartMode, setChartMode] = useState('count');
   const [regionView, setRegionView] = useState('bar');
@@ -546,19 +573,22 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
     const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
     return groups
       .map((group) => {
-        const scopeVisits = group.visits.filter((visit) => visit.yearNumber === yearValue);
-        const completedCount = scopeVisits.length;
+        const scopeVisits = group.visits.filter((visit) => isVisitWithinScope(visit, yearValue, selectedMonth));
+        const completedAsOfPeriod = scopeVisits.length;
         const assignedCount = group.assignedCount;
-        const remainingCount = Math.max(assignedCount - completedCount, 0);
-        const completionPercent = assignedCount ? (completedCount / assignedCount) * 100 : 0;
+        const remainingAsOfPeriod = Math.max(assignedCount - completedAsOfPeriod, 0);
+        const progressAsOfPeriod = assignedCount ? (completedAsOfPeriod / assignedCount) * 100 : 0;
 
         return {
           ...group,
           scopeVisits,
-          completedCount,
-          remainingCount,
-          completionPercent,
-          status: completionPercent > 80 ? 'green' : completionPercent >= 50 ? 'yellow' : 'red',
+          completedAsOfPeriod,
+          remainingAsOfPeriod,
+          progressAsOfPeriod,
+          completedCount: completedAsOfPeriod,
+          remainingCount: remainingAsOfPeriod,
+          completionPercent: progressAsOfPeriod,
+          status: progressAsOfPeriod > 80 ? 'green' : progressAsOfPeriod >= 50 ? 'yellow' : 'red',
         };
       })
       .filter((group) => {
@@ -571,7 +601,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
         }
         return true;
       });
-  }, [groups, selectedYear, selectedRegion, selectedAccountant, searchQuery, availableYears]);
+  }, [groups, selectedYear, selectedMonth, selectedRegion, selectedAccountant, searchQuery, availableYears]);
 
   const sortedGroups = useMemo(() => {
     const copy = [...filteredGroups];
@@ -596,20 +626,20 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const displayGroups = useMemo(() => {
     const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
     return filteredGroups.map((group) => {
-      const completedAsOfYear = group.visits.filter((visit) => visit.yearNumber === yearValue).length;
+      const completedAsOfPeriod = group.visits.filter((visit) => isVisitWithinScope(visit, yearValue, selectedMonth)).length;
       return {
         ...group,
-        completedAsOfYear,
-        remainingAsOfYear: Math.max(group.assignedCount - completedAsOfYear, 0),
-        progressAsOfYear: group.assignedCount ? (completedAsOfYear / group.assignedCount) * 100 : 0,
+        completedAsOfPeriod,
+        remainingAsOfPeriod: Math.max(group.assignedCount - completedAsOfPeriod, 0),
+        progressAsOfPeriod: group.assignedCount ? (completedAsOfPeriod / group.assignedCount) * 100 : 0,
       };
     });
-  }, [filteredGroups, selectedYear, availableYears]);
+  }, [filteredGroups, selectedYear, selectedMonth, availableYears]);
 
   const summary = useMemo(() => {
     const accountantCount = displayGroups.length;
     const assigned = displayGroups.reduce((sum, group) => sum + group.assignedCount, 0);
-    const completed = displayGroups.reduce((sum, group) => sum + group.completedAsOfYear, 0);
+    const completed = displayGroups.reduce((sum, group) => sum + group.completedAsOfPeriod, 0);
     const pending = Math.max(assigned - completed, 0);
     const overall = assigned ? (completed / assigned) * 100 : 0;
     return { accountantCount, assigned, completed, pending, overall };
@@ -623,12 +653,12 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
 
   const regionStats = useMemo(() => {
     const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    const stats = buildRegionStats(displayGroups, yearValue).filter((region) => {
+    const stats = buildRegionStats(displayGroups, yearValue, selectedMonth).filter((region) => {
       if (selectedRegion !== 'all' && region.region !== selectedRegion) return false;
       return true;
     });
     return stats;
-  }, [displayGroups, selectedYear, selectedRegion, availableYears]);
+  }, [displayGroups, selectedYear, selectedMonth, selectedRegion, availableYears]);
 
   const regionTrendData = useMemo(() => {
     const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
@@ -641,7 +671,6 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
         row[regionName] = displayGroups
           .filter((group) => group.regionCode === regionName)
           .reduce((sum, group) => sum + group.visits.filter((visit) => {
-            // only count visits from the selected year up to this month
             if (!visit.yearNumber) return false;
             return visit.yearNumber === yearValue && visit.monthNumber <= monthNumber;
           }).length, 0);
@@ -653,8 +682,9 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
 
   const insights = useMemo(() => {
     const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    return buildInsights(displayGroups, yearValue);
-  }, [displayGroups, selectedYear, availableYears]);
+    return buildInsights(displayGroups, yearValue, selectedMonth);
+  }, [displayGroups, selectedYear, selectedMonth, availableYears]);
+ 
 
   const detailedRecords = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -695,11 +725,13 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const clearFilters = () => {
     setSelectedRegion('all');
     setSelectedAccountant('all');
+    setSelectedMonth('all');
+    setSelectedMonth('all');
     setSearchQuery('');
     setCurrentPage(1);
   };
 
-  const hasFilters = selectedRegion !== 'all' || selectedAccountant !== 'all' || searchQuery.trim();
+  const hasFilters = selectedRegion !== 'all' || selectedAccountant !== 'all' || selectedMonth !== 'all' || searchQuery.trim();
   const detailedTotalPages = Math.max(1, Math.ceil(detailedRecords.length / 12));
   const detailedPageRecords = detailedRecords.slice((recordsPage - 1) * 12, recordsPage * 12);
 
@@ -753,10 +785,10 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount.toLocaleString()} accent="#2563eb" tint="bg-blue-50 text-blue-600 ring-blue-100" />
-        <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned.toLocaleString()} accent="#7c3aed" tint="bg-violet-50 text-violet-600 ring-violet-100" />
-        <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed.toLocaleString()} accent="#059669" tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
-        <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending.toLocaleString()} accent="#f59e0b" tint="bg-amber-50 text-amber-600 ring-amber-100" />
+        <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount} accent={CARD_ACCENTS[0]} tint="bg-blue-50 text-blue-600 ring-blue-100" />
+        <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned} accent={CARD_ACCENTS[1]} tint="bg-violet-50 text-violet-600 ring-violet-100" />
+        <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed} accent={CARD_ACCENTS[2]} tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
+        <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending} accent={CARD_ACCENTS[4]} tint="bg-amber-50 text-amber-600 ring-amber-100" />
         <StatCard icon={TrendingUp} title="Overall Completion %" value={formatPercent(summary.overall)} accent="#0ea5e9" tint="bg-sky-50 text-sky-600 ring-sky-100" />
       </div>
 
@@ -771,9 +803,6 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
             <h2 className="mt-1 text-xl font-black text-slate-900">Yearly cumulative progress line chart</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
-            </select>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
               <button onClick={() => setChartMode('count')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'count' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completed Count</button>
               <button onClick={() => setChartMode('percent')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'percent' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completion %</button>
@@ -802,6 +831,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
               {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
             </select>
           </div>
+          
         </div>
 
         <div className="px-4 py-4 sm:px-6">
@@ -837,7 +867,11 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
             <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant Progress Table</p>
             <h2 className="mt-1 text-xl font-black text-slate-900">Sortable progress tracking</h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
+              <option value="all">All Months</option>
+              {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
+            </select>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search accountant or region" className="w-[260px] rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400" />
@@ -858,9 +892,9 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                   { key: 'accountantName', label: 'Accountant Name' },
                   { key: 'regionCode', label: 'Region' },
                   { key: 'assignedCount', label: 'Assigned Count' },
-                  { key: 'completedAsOfYear', label: 'Completed Count' },
-                  { key: 'remainingAsOfYear', label: 'Remaining Count' },
-                  { key: 'progressAsOfYear', label: 'Completion %' },
+                  { key: 'completedAsOfPeriod', label: 'Completed Count' },
+                  { key: 'remainingAsOfPeriod', label: 'Remaining Count' },
+                  { key: 'progressAsOfPeriod', label: 'Completion %' },
                 ].map((column) => (
                   <th key={column.key} className="px-5 py-3">
                     <button type="button" onClick={() => handleSort(column.key)} className="inline-flex items-center gap-1.5">
@@ -871,7 +905,6 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                 ))}
                 <th className="px-5 py-3">Progress Bar</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -880,25 +913,20 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                   <td className="px-5 py-4 font-semibold text-slate-900">{group.accountantName}</td>
                   <td className="px-5 py-4 text-slate-600">{group.regionCode}</td>
                   <td className="px-5 py-4 text-slate-700 tabular-nums">{group.assignedCount}</td>
-                  <td className="px-5 py-4 text-slate-700 tabular-nums">{group.completedAsOfYear}</td>
-                  <td className="px-5 py-4 text-slate-700 tabular-nums">{group.remainingAsOfYear}</td>
-                  <td className="px-5 py-4 text-slate-700 tabular-nums">{formatPercent(group.progressAsOfYear)}</td>
+                  <td className="px-5 py-4 text-slate-700 tabular-nums">{group.completedAsOfPeriod}</td>
+                  <td className="px-5 py-4 text-slate-700 tabular-nums">{group.remainingAsOfPeriod}</td>
+                  <td className="px-5 py-4 text-slate-700 tabular-nums">{formatPercent(group.progressAsOfPeriod)}</td>
                   <td className="px-5 py-4">
                     <div className="h-2.5 w-full rounded-full bg-slate-100">
-                      <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(group.progressAsOfYear, 100)}%` }} />
+                      <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(group.progressAsOfPeriod, 100)}%` }} />
                     </div>
                   </td>
                   <td className="px-5 py-4"><StatusPill status={group.status} /></td>
-                  <td className="px-5 py-4">
-                    <button onClick={() => setActiveAccountantKey(group.key)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">
-                      View
-                    </button>
-                  </td>
                 </tr>
               ))}
               {visibleGroups.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="px-5 py-12 text-center text-sm text-slate-500">No accountants match the current filters.</td>
+                  <td colSpan="8" className="px-5 py-12 text-center text-sm text-slate-500">No accountants match the current filters.</td>
                 </tr>
               )}
             </tbody>

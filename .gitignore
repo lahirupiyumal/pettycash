@@ -87,3 +87,5 @@ typings/
 # Frontend Build
 frontend/dist/
 frontend/build/
+backend/.env
+backend/.env
