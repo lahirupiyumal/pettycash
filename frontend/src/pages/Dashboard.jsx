@@ -29,6 +29,7 @@ import {
   ReceiptText,
   Upload,
   Settings,
+  UserCircle2,
 } from 'lucide-react';
 
 // Route wrapper components to pass context props down to existing tab views
@@ -180,11 +181,7 @@ export default function Dashboard() {
   }, []);
 
   const menuItems = useMemo(() => {
-    if (user?.role === 'admin') {
-      return [{ label: 'ADMIN PANEL', icon: Settings }];
-    }
-
-    return [
+    const items = [
       { label: 'OVERVIEW', icon: LayoutDashboard, path: '/overview' },
       { label: 'INVOICE TOTAL', icon: ReceiptText, path: '/invoice-total' },
       { label: 'CASH IN HAND', icon: HandCoins, path: '/cash-in-hand' },
@@ -198,6 +195,14 @@ export default function Dashboard() {
       { label: 'Accountant Data', icon: FileSpreadsheet, path: '/accountant-data' },
       { label: 'Accountant Import', icon: Upload, path: '/accountant-import' },
     ];
+
+    if (user?.role === 'admin') {
+      items.push({ label: 'ADMIN PANEL', icon: Settings, path: '/admin' });
+    }
+
+    items.push({ label: 'User Profile', icon: UserCircle2, path: '/profile' });
+
+    return items;
   }, [user?.role]);
 
   const currentMenuItem = useMemo(() => {
@@ -288,6 +293,35 @@ export default function Dashboard() {
             </div>
           )}
 
+          {menuItems.some(item => item.label === 'User Profile') && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Account
+              </p>
+              <div className="space-y-1">
+                {menuItems.filter(item => item.label === 'User Profile').map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path;
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-900/40 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Admin Section */}
           {menuItems.some(item => item.label === 'ADMIN PANEL') && (
             <div>
@@ -343,7 +377,7 @@ export default function Dashboard() {
             {/* Right: User Profile */}
             <div className="ml-auto flex items-center flex-shrink-0">
               {/* User Profile Card - Compact */}
-              <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-3 py-2.5 shadow-sm hover:shadow-md transition-all duration-300">
+              <Link to="/profile" className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-3 py-2.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
                 {/* Avatar */}
                 <div className={`relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl font-extrabold text-sm shadow-md text-white ${user?.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-blue-600'
                   }`}>
@@ -356,7 +390,7 @@ export default function Dashboard() {
                   <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'User'}</p>
                   <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{user?.role || 'User'}</p>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </header>
