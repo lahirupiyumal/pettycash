@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Profile from './pages/Profile';
 import Dashboard, {
   OverviewRoute,
   InvoiceTotalRoute,
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="cost-centers" element={<CostCentersRoute />} />
             <Route path="forecast" element={<ForecastRoute />} />
             <Route path="accountant-details" element={<AccountantDetailsRoute />} />
+            <Route path="profile" element={<Profile />} />
             
             {/* Data Management Routes */}
             <Route path="imported-data" element={<ImportedDataRoute />} />
