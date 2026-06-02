@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,6 +14,36 @@ export default function Login() {
 
   const handleMicrosoftLogin = () => {
     window.location.href = '/api/auth/microsoft';
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const authValue = params.get('auth');
+    const errorValue = params.get('error');
+
+    if (errorValue) {
+      setError(errorValue);
+    }
+
+    if (!authValue) return;
+
+    try {
+      const normalized = authValue.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+      const payload = JSON.parse(atob(padded));
+
+      if (payload?.token && payload?.user) {
+        login(payload.user, payload.token);
+        navigate('/', { replace: true });
+      }
+    } catch {
+      setError('Microsoft login could not be completed.');
+    }
+  }, [location.search, login, navigate]);
+
+  const handleMicrosoftLogin = () => {
+    const backendBaseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001').replace(/\/$/, '');
+    window.location.href = `${backendBaseUrl}/api/auth/microsoft`;
   };
 
   const handleSubmit = async e => {
