@@ -244,7 +244,19 @@ export default function Overview({ records = [] }) {
 
   return (
     <div className="space-y-6 rounded-[2rem] bg-transparent">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleMonthlyCsvExport}
+            disabled={!exportReady}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FileDown className="h-4 w-4" />
+            CSV Export
+          </button>
+        </div>
+
         <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 w-fit">
           <label htmlFor="yearFilter" className="text-xs font-bold uppercase tracking-widest text-slate-500">Year:</label>
           <select
@@ -258,18 +270,6 @@ export default function Overview({ records = [] }) {
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleMonthlyCsvExport}
-            disabled={!exportReady}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <FileDown className="h-4 w-4" />
-            CSV Export
-          </button>
         </div>
       </div>
 
