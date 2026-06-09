@@ -1,5 +1,4 @@
 const express = require('express');
-const session = require('express-session');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
@@ -9,18 +8,6 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-app.use(session({
-  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'pettycash-oauth',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 10 * 60 * 1000,
-  },
-}));
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));

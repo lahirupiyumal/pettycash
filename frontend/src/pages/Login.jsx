@@ -6,34 +6,18 @@ import { useAuth } from '../context/AuthContext';
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const { token, login } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Once token state is committed (by login() or from localStorage on mount),
-  // redirect away from login page to the dashboard.
-  useEffect(() => {
-    if (token) {
-      navigate('/', { replace: true });
-    }
-  }, [token, navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const authValue = params.get('auth');
     const errorValue = params.get('error');
-    const successValue = params.get('success');
 
     if (errorValue) {
       setError(errorValue);
-      setSuccess('');
-    }
-
-    if (successValue) {
-      setSuccess(successValue);
-      setError('');
     }
 
     if (!authValue) return;
@@ -45,13 +29,12 @@ export default function Login() {
 
       if (payload?.token && payload?.user) {
         login(payload.user, payload.token);
-        // Don't navigate here — login() calls setToken() which is async.
-        // The auth-guard useEffect above will redirect once React commits the state.
+        navigate('/', { replace: true });
       }
     } catch {
       setError('Microsoft login could not be completed.');
     }
-  }, [location.search, login]);
+  }, [location.search, login, navigate]);
 
   const handleMicrosoftLogin = () => {
     const backendBaseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001').replace(/\/$/, '');
@@ -62,7 +45,6 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
     try {
       const { data } = await api.post('/auth/login', form);
       login(data.user, data.token);
@@ -102,12 +84,6 @@ export default function Login() {
             {error && (
               <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-700 shadow-inner shadow-red-100">
                 {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-700">
-                {success}
               </div>
             )}
 
