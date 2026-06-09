@@ -523,6 +523,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const [regionView, setRegionView] = useState('bar');
   const [activeAccountantKey, setActiveAccountantKey] = useState('');
   const [recordsPage, setRecordsPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('performance'); // 'performance' | 'assignment'
 
   const fetchData = async () => {
     try {
@@ -684,7 +685,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
     const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
     return buildInsights(displayGroups, yearValue, selectedMonth);
   }, [displayGroups, selectedYear, selectedMonth, availableYears]);
- 
+
 
   const detailedRecords = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -772,6 +773,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
 
   return (
     <div className="space-y-6 pb-10">
+      {/* ── Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant Management</p>
@@ -784,304 +786,433 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount} accent={CARD_ACCENTS[0]} tint="bg-blue-50 text-blue-600 ring-blue-100" />
-        <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned} accent={CARD_ACCENTS[1]} tint="bg-violet-50 text-violet-600 ring-violet-100" />
-        <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed} accent={CARD_ACCENTS[2]} tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
-        <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending} accent={CARD_ACCENTS[4]} tint="bg-amber-50 text-amber-600 ring-amber-100" />
-        <StatCard icon={TrendingUp} title="Overall Completion %" value={formatPercent(summary.overall)} accent="#0ea5e9" tint="bg-sky-50 text-sky-600 ring-sky-100" />
+      {/* ── Tab Switcher ── */}
+      <div className="flex rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+        <button
+          onClick={() => setActiveTab('performance')}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 ${activeTab === 'performance'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/10'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Performance Analytics
+        </button>
+        <button
+          onClick={() => setActiveTab('assignment')}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 ${activeTab === 'assignment'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/10'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+        >
+          <ListChecks className="h-4 w-4" />
+          Assignment & Records
+        </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {insights.map((insight) => <InsightCard key={insight.title} insight={insight} />)}
-      </div>
-
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Main Visualization</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">Yearly cumulative progress line chart</h2>
+      {activeTab === 'performance' ? (
+        <>
+          {/* ── Stat cards ── */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
+            <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount} accent={CARD_ACCENTS[0]} tint="bg-blue-50 text-blue-600 ring-blue-100" />
+            <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned} accent={CARD_ACCENTS[1]} tint="bg-violet-50 text-violet-600 ring-violet-100" />
+            <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed} accent={CARD_ACCENTS[2]} tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
+            <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending} accent={CARD_ACCENTS[4]} tint="bg-amber-50 text-amber-600 ring-amber-100" />
+            <StatCard icon={TrendingUp} title="Overall Completion %" value={formatPercent(summary.overall)} accent="#0ea5e9" tint="bg-sky-50 text-sky-600 ring-sky-100" />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
-              <button onClick={() => setChartMode('count')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'count' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completed Count</button>
-              <button onClick={() => setChartMode('percent')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'percent' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completion %</button>
+
+          {/* ── Insights ── */}
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {insights.map((insight) => <InsightCard key={insight.title} insight={insight} />)}
+          </div>
+
+          {/* ── Yearly Cumulative Progress Chart ── */}
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Main Visualization</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Yearly cumulative progress line chart</h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
+                  <button onClick={() => setChartMode('count')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'count' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completed Count</button>
+                  <button onClick={() => setChartMode('percent')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'percent' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completion %</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 border-b border-slate-100 px-6 py-5 lg:grid-cols-3">
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant</label>
+                <select value={selectedAccountant} onChange={(e) => { setSelectedAccountant(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
+                  <option value="all">All Accountants</option>
+                  {groups.map((group) => <option key={group.key} value={group.key}>{group.accountantName}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region</label>
+                <select value={selectedRegion} onChange={(e) => { setSelectedRegion(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
+                  <option value="all">All Regions</option>
+                  {[...new Set(groups.map((group) => group.regionCode))].sort().map((region) => <option key={region} value={region}>{region}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Year</label>
+                <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
+                  {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="px-4 py-4 sm:px-6">
+              <div className="mb-4 h-[360px] w-full">
+                <ResponsiveContainer>
+                  <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} domain={chartMode === 'percent' ? [0, 100] : ['auto', 'auto']} />
+                    <Tooltip content={(props) => <AccountantTooltip {...props} chartMode={chartMode} />} />
+                    <Legend />
+                    {displayGroups.filter((group) => group.assignedCount > 0).map((group, index) => (
+                      <Line
+                        key={group.key}
+                        type="monotone"
+                        dataKey={chartMode === 'percent' ? `${group.key}Percent` : group.key}
+                        name={group.accountantName}
+                        stroke={COLORS[index % COLORS.length]}
+                        strokeWidth={2.5}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid gap-4 border-b border-slate-100 px-6 py-5 lg:grid-cols-3">
-          <div>
-            <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant</label>
-            <select value={selectedAccountant} onChange={(e) => { setSelectedAccountant(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              <option value="all">All Accountants</option>
-              {groups.map((group) => <option key={group.key} value={group.key}>{group.accountantName}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region</label>
-            <select value={selectedRegion} onChange={(e) => { setSelectedRegion(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              <option value="all">All Regions</option>
-              {[...new Set(groups.map((group) => group.regionCode))].sort().map((region) => <option key={region} value={region}>{region}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Year</label>
-            <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
-            </select>
-          </div>
-          
-        </div>
-
-        <div className="px-4 py-4 sm:px-6">
-          <div className="mb-4 h-[360px] w-full">
-            <ResponsiveContainer>
-              <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} domain={chartMode === 'percent' ? [0, 100] : ['auto', 'auto']} />
-                <Tooltip content={(props) => <AccountantTooltip {...props} chartMode={chartMode} />} />
-                <Legend />
-                {displayGroups.filter((group) => group.assignedCount > 0).map((group, index) => (
-                  <Line
-                    key={group.key}
-                    type="monotone"
-                    dataKey={chartMode === 'percent' ? `${group.key}Percent` : group.key}
-                    name={group.accountantName}
-                    stroke={COLORS[index % COLORS.length]}
-                    strokeWidth={2.5}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant Progress Table</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">Sortable progress tracking</h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-              <option value="all">All Months</option>
-              {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
-            </select>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search accountant or region" className="w-[260px] rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400" />
+          {/* ── Accountant Progress Table ── */}
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant Progress Table</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Sortable progress tracking</h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
+                  <option value="all">All Months</option>
+                  {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
+                </select>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search accountant or region" className="w-[260px] rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400" />
+                </div>
+                {hasFilters && (
+                  <button onClick={clearFilters} className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">
+                    <X className="h-3.5 w-3.5" /> Clear
+                  </button>
+                )}
+              </div>
             </div>
-            {hasFilters && (
-              <button onClick={clearFilters} className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">
-                <X className="h-3.5 w-3.5" /> Clear
-              </button>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-[0.22em] text-slate-500">
+                  <tr>
+                    {[
+                      { key: 'accountantName', label: 'Accountant Name' },
+                      { key: 'regionCode', label: 'Region' },
+                      { key: 'assignedCount', label: 'Assigned Count' },
+                      { key: 'completedAsOfPeriod', label: 'Completed Count' },
+                      { key: 'remainingAsOfPeriod', label: 'Remaining Count' },
+                      { key: 'progressAsOfPeriod', label: 'Completion %' },
+                    ].map((column) => (
+                      <th key={column.key} className="px-5 py-3">
+                        <button type="button" onClick={() => handleSort(column.key)} className="inline-flex items-center gap-1.5">
+                          <span>{column.label}</span>
+                          <SortIcon column={column.key} sortConfig={sortConfig} />
+                        </button>
+                      </th>
+                    ))}
+                    <th className="px-5 py-3">Progress Bar</th>
+                    <th className="px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {visibleGroups.map((group) => (
+                    <tr
+                      key={group.key}
+                      onClick={() => setActiveAccountantKey(group.key)}
+                      className={`cursor-pointer transition-colors ${activeAccountantKey === group.key ? 'bg-indigo-50/50 font-bold' : 'hover:bg-slate-50/80'}`}
+                    >
+                      <td className="px-5 py-4 font-semibold text-slate-900">{group.accountantName}</td>
+                      <td className="px-5 py-4 text-slate-600">{group.regionCode}</td>
+                      <td className="px-5 py-4 text-slate-700 tabular-nums">{group.assignedCount}</td>
+                      <td className="px-5 py-4 text-slate-700 tabular-nums">{group.completedAsOfPeriod}</td>
+                      <td className="px-5 py-4 text-slate-700 tabular-nums">{group.remainingAsOfPeriod}</td>
+                      <td className="px-5 py-4 text-slate-700 tabular-nums">{formatPercent(group.progressAsOfPeriod)}</td>
+                      <td className="px-5 py-4">
+                        <div className="h-2.5 w-full rounded-full bg-slate-100">
+                          <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(group.progressAsOfPeriod, 100)}%` }} />
+                        </div>
+                      </td>
+                      <td className="px-5 py-4"><StatusPill status={group.status} /></td>
+                    </tr>
+                  ))}
+                  {visibleGroups.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="px-5 py-12 text-center text-sm text-slate-500">No accountants match the current filters.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+                <p className="text-xs font-semibold text-slate-400">Page {currentPage} of {totalPages}</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Prev</button>
+                  <button onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Next</button>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-[0.22em] text-slate-500">
-              <tr>
-                {[
-                  { key: 'accountantName', label: 'Accountant Name' },
-                  { key: 'regionCode', label: 'Region' },
-                  { key: 'assignedCount', label: 'Assigned Count' },
-                  { key: 'completedAsOfPeriod', label: 'Completed Count' },
-                  { key: 'remainingAsOfPeriod', label: 'Remaining Count' },
-                  { key: 'progressAsOfPeriod', label: 'Completion %' },
-                ].map((column) => (
-                  <th key={column.key} className="px-5 py-3">
-                    <button type="button" onClick={() => handleSort(column.key)} className="inline-flex items-center gap-1.5">
-                      <span>{column.label}</span>
-                      <SortIcon column={column.key} sortConfig={sortConfig} />
-                    </button>
-                  </th>
-                ))}
-                <th className="px-5 py-3">Progress Bar</th>
-                <th className="px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {visibleGroups.map((group) => (
-                <tr key={group.key} className={`transition-colors ${activeAccountantKey === group.key ? 'bg-indigo-50/50' : 'hover:bg-slate-50/80'}`}>
-                  <td className="px-5 py-4 font-semibold text-slate-900">{group.accountantName}</td>
-                  <td className="px-5 py-4 text-slate-600">{group.regionCode}</td>
-                  <td className="px-5 py-4 text-slate-700 tabular-nums">{group.assignedCount}</td>
-                  <td className="px-5 py-4 text-slate-700 tabular-nums">{group.completedAsOfPeriod}</td>
-                  <td className="px-5 py-4 text-slate-700 tabular-nums">{group.remainingAsOfPeriod}</td>
-                  <td className="px-5 py-4 text-slate-700 tabular-nums">{formatPercent(group.progressAsOfPeriod)}</td>
-                  <td className="px-5 py-4">
-                    <div className="h-2.5 w-full rounded-full bg-slate-100">
-                      <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(group.progressAsOfPeriod, 100)}%` }} />
-                    </div>
-                  </td>
-                  <td className="px-5 py-4"><StatusPill status={group.status} /></td>
-                </tr>
-              ))}
-              {visibleGroups.length === 0 && (
-                <tr>
-                  <td colSpan="8" className="px-5 py-12 text-center text-sm text-slate-500">No accountants match the current filters.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-            <p className="text-xs font-semibold text-slate-400">Page {currentPage} of {totalPages}</p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Prev</button>
-              <button onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Next</button>
+        </>
+      ) : (
+        <>
+          {/* ── Unified Filters Panel (Tab 2) ── */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+              <Filter className="h-5 w-5 text-indigo-600" />
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Search & Filters</h3>
             </div>
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region Performance Analytics</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">Regional summary and trend view</h2>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
-            <button onClick={() => setRegionView('bar')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'bar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Bar</button>
-            <button onClick={() => setRegionView('pie')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'pie' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Pie</button>
-            <button onClick={() => setRegionView('trend')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'trend' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Trend</button>
-          </div>
-        </div>
-
-        <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.25fr_0.9fr]">
-          <div className="h-[340px] w-full">
-            <ResponsiveContainer>
-              {regionView === 'bar' ? (
-                <BarChart data={regionStats} margin={{ top: 10, right: 15, left: 0, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="region" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="assigned" name="Assigned" fill="#94a3b8" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="completed" name="Completed" fill="#2563eb" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="pending" name="Pending" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              ) : regionView === 'pie' ? (
-                <PieChart>
-                  <Tooltip />
-                  <Legend />
-                  <Pie data={[{ name: 'Completed', value: summary.completed }, { name: 'Pending', value: summary.pending }]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
-                    <Cell fill="#2563eb" />
-                    <Cell fill="#f59e0b" />
-                  </Pie>
-                </PieChart>
-              ) : (
-                <LineChart data={regionTrendData} margin={{ top: 10, right: 15, left: 0, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  {regionStats.map((region, index) => (
-                    <Line key={region.region} type="monotone" dataKey={region.region} name={region.region} stroke={COLORS[index % COLORS.length]} strokeWidth={2.5} dot={{ r: 3 }} />
-                  ))}
-                </LineChart>
-              )}
-            </ResponsiveContainer>
-          </div>
-
-          <div className="space-y-3">
-            {regionStats.map((region) => (
-              <div key={region.region} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-slate-900">{region.region}</p>
-                    <p className="text-xs text-slate-500">Assigned {region.assigned} · Completed {region.completed} · Pending {region.pending}</p>
-                  </div>
-                  <StatusPill status={region.completionPercent > 80 ? 'green' : region.completionPercent >= 50 ? 'yellow' : 'red'} />
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
+                    placeholder="Search accountant or region..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
+                  />
                 </div>
-                <div className="mt-3 h-2.5 rounded-full bg-white">
-                  <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(region.completionPercent, 100)}%` }} />
-                </div>
-                <p className="mt-2 text-xs font-semibold text-slate-500">{formatPercent(region.completionPercent)} completion</p>
               </div>
-            ))}
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region</label>
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => { setSelectedRegion(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="all">All Regions</option>
+                  {[...new Set(groups.map((group) => group.regionCode))].sort().map((region) => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant</label>
+                <select
+                  value={selectedAccountant}
+                  onChange={(e) => {
+                    setSelectedAccountant(e.target.value);
+                    setCurrentPage(1);
+                    setRecordsPage(1);
+                    if (e.target.value !== 'all') {
+                      setActiveAccountantKey(e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="all">All Accountants</option>
+                  {groups.map((group) => (
+                    <option key={group.key} value={group.key}>{group.accountantName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Month</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="all">All Months</option>
+                  {MONTHS.map((month) => (
+                    <option key={month} value={month}>{month}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  {availableYears.map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {hasFilters && (
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
+                >
+                  <X className="h-3.5 w-3.5" /> Clear All Filters
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Detailed Excel Sheet Table</p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">All imported visit records</h2>
-            <p className="mt-1 text-sm text-slate-500">This is the full detailed table from the uploaded Excel sheet.</p>
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
-            <span className="h-2 w-2 rounded-full bg-indigo-500" />
-            {detailedRecords.length.toLocaleString()} row{detailedRecords.length !== 1 ? 's' : ''}
-          </div>
-        </div>
+          {/* ── Region Performance Summary Chart ── */}
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region Performance Analytics</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Regional summary and trend view</h2>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <button onClick={() => setRegionView('bar')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'bar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Bar</button>
+                <button onClick={() => setRegionView('pie')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'pie' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Pie</button>
+                <button onClick={() => setRegionView('trend')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'trend' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Trend</button>
+              </div>
+            </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
-            <Filter className="h-4 w-4" />
-            Current filters apply to this table
-          </div>
-          <button onClick={() => setRecordsPage(1)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
-            Reset page
-          </button>
-        </div>
+            <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.25fr_0.9fr]">
+              <div className="h-[340px] w-full">
+                <ResponsiveContainer>
+                  {regionView === 'bar' ? (
+                    <BarChart data={regionStats} margin={{ top: 10, right: 15, left: 0, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="region" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="assigned" name="Assigned" fill="#94a3b8" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="completed" name="Completed" fill="#2563eb" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="pending" name="Pending" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  ) : regionView === 'pie' ? (
+                    <PieChart>
+                      <Tooltip />
+                      <Legend />
+                      <Pie data={[{ name: 'Completed', value: summary.completed }, { name: 'Pending', value: summary.pending }]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
+                        <Cell fill="#2563eb" />
+                        <Cell fill="#f59e0b" />
+                      </Pie>
+                    </PieChart>
+                  ) : (
+                    <LineChart data={regionTrendData} margin={{ top: 10, right: 15, left: 0, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      {regionStats.map((region, index) => (
+                        <Line key={region.region} type="monotone" dataKey={region.region} name={region.region} stroke={COLORS[index % COLORS.length]} strokeWidth={2.5} dot={{ r: 3 }} />
+                      ))}
+                    </LineChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-[0.22em] text-slate-500">
-              <tr>
-                <th className="px-5 py-3">Accountant Name</th>
-                <th className="px-5 py-3">Region</th>
-                <th className="px-5 py-3">Cost Center Name</th>
-                <th className="px-5 py-3">Cost Center Code</th>
-                <th className="px-5 py-3">Completed Year</th>
-                <th className="px-5 py-3">Completed Month</th>
-                <th className="px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {detailedPageRecords.map((record) => (
-                <tr key={record._id || `${record.code}-${record.yearNumber}-${record.monthName}`} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-5 py-4 font-semibold text-slate-900">{record.accountantName}</td>
-                  <td className="px-5 py-4 text-slate-600">{record.regionCode}</td>
-                  <td className="px-5 py-4 text-slate-700">{record.costCenterName || record.code}</td>
-                  <td className="px-5 py-4 font-mono text-xs text-slate-500">{record.code}</td>
-                  <td className="px-5 py-4 text-slate-700">{record.yearNumber || '—'}</td>
-                  <td className="px-5 py-4 text-slate-700">{record.monthName || '—'}</td>
-                  <td className="px-5 py-4"><StatusPill status="green" /></td>
-                </tr>
-              ))}
-              {detailedPageRecords.length === 0 && (
-                <tr>
-                  <td colSpan="7" className="px-5 py-12 text-center text-sm text-slate-500">No detailed records match the selected filters.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {detailedTotalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-            <p className="text-xs font-semibold text-slate-400">Page {recordsPage} of {detailedTotalPages}</p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setRecordsPage((page) => Math.max(1, page - 1))} disabled={recordsPage === 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Prev</button>
-              <button onClick={() => setRecordsPage((page) => Math.min(detailedTotalPages, page + 1))} disabled={recordsPage === detailedTotalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Next</button>
+              <div className="space-y-3">
+                {regionStats.map((region) => (
+                  <div key={region.region} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-slate-900">{region.region}</p>
+                        <p className="text-xs text-slate-500">Assigned {region.assigned} · Completed {region.completed} · Pending {region.pending}</p>
+                      </div>
+                      <StatusPill status={region.completionPercent > 80 ? 'green' : region.completionPercent >= 50 ? 'yellow' : 'red'} />
+                    </div>
+                    <div className="mt-3 h-2.5 rounded-full bg-white">
+                      <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(region.completionPercent, 100)}%` }} />
+                    </div>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">{formatPercent(region.completionPercent)} completion</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* ── Detailed Excel visit records table ── */}
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Detailed Excel Sheet Table</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">All imported visit records</h2>
+                <p className="mt-1 text-sm text-slate-500">This is the full detailed table from the uploaded Excel sheet.</p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
+                <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                {detailedRecords.length.toLocaleString()} row{detailedRecords.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                <Filter className="h-4 w-4" />
+                Current filters apply to this table
+              </div>
+              <button onClick={() => setRecordsPage(1)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                Reset page
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-[0.22em] text-slate-500">
+                  <tr>
+                    <th className="px-5 py-3">Accountant Name</th>
+                    <th className="px-5 py-3">Region</th>
+                    <th className="px-5 py-3">Cost Center Name</th>
+                    <th className="px-5 py-3">Cost Center Code</th>
+                    <th className="px-5 py-3">Completed Year</th>
+                    <th className="px-5 py-3">Completed Month</th>
+                    <th className="px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {detailedPageRecords.map((record) => (
+                    <tr key={record._id || `${record.code}-${record.yearNumber}-${record.monthName}`} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-5 py-4 font-semibold text-slate-900">{record.accountantName}</td>
+                      <td className="px-5 py-4 text-slate-600">{record.regionCode}</td>
+                      <td className="px-5 py-4 text-slate-700">{record.costCenterName || record.code}</td>
+                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{record.code}</td>
+                      <td className="px-5 py-4 text-slate-700">{record.yearNumber || '—'}</td>
+                      <td className="px-5 py-4 text-slate-700">{record.monthName || '—'}</td>
+                      <td className="px-5 py-4"><StatusPill status="green" /></td>
+                    </tr>
+                  ))}
+                  {detailedPageRecords.length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="px-5 py-12 text-center text-sm text-slate-500">No detailed records match the selected filters.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {detailedTotalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+                <p className="text-xs font-semibold text-slate-400">Page {recordsPage} of {detailedTotalPages}</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setRecordsPage((page) => Math.max(1, page - 1))} disabled={recordsPage === 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Prev</button>
+                  <button onClick={() => setRecordsPage((page) => Math.min(detailedTotalPages, page + 1))} disabled={recordsPage === detailedTotalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Next</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
