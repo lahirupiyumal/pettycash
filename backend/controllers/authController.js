@@ -5,7 +5,7 @@ const User = require('../models/User');
 
 const microsoftScopes = ['openid', 'profile', 'email', 'User.Read'];
 
-const getBackendUrl = () => process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+const getBackendUrl = () => process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`;
 const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const createAuthToken = (user) => jwt.sign(
