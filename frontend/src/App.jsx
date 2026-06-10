@@ -2,9 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import VerifyOtp from './pages/VerifyOtp';
-import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
 import Dashboard, {
   OverviewRoute,
@@ -39,9 +36,6 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-otp" element={<VerifyOtp />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
           
           <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>}>
             {/* Dynamic Index Route based on role */}
@@ -72,3 +66,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

@@ -31,8 +31,8 @@ export default function Profile() {
 
   return (
     <div className="min-h-full rounded-[32px] bg-slate-100 p-0 sm:p-4 lg:p-6">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-3xl items-start justify-center overflow-hidden bg-white shadow-[0_30px_90px_-40px_rgba(15,23,42,0.35)] sm:rounded-[32px]">
-        <UserProfileCard user={profile} loading={loading} onEdit={handleEdit} />
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-2xl items-start justify-center overflow-hidden bg-white shadow-[0_30px_90px_-40px_rgba(15,23,42,0.35)] sm:rounded-[32px]">
+        <UserProfileCard user={profile} loading={loading} />
       </div>
     </div>
   );

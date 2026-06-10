@@ -180,8 +180,6 @@ export default function Dashboard() {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  const isAdmin = user?.role === 'admin';
-
   const menuItems = useMemo(() => {
     const items = [
       { label: 'OVERVIEW', icon: LayoutDashboard, path: '/overview' },
@@ -198,46 +196,14 @@ export default function Dashboard() {
       { label: 'Accountant Import', icon: Upload, path: '/accountant-import' },
     ];
 
-    if (isAdmin) {
+    if (user?.role === 'admin') {
       items.push({ label: 'ADMIN PANEL', icon: Settings, path: '/admin' });
     }
 
     items.push({ label: 'User Profile', icon: UserCircle2, path: '/profile' });
 
     return items;
-  }, [isAdmin]);
-
-  const mainMenuItems = useMemo(() => {
-    if (isAdmin) {
-      return [];
-    }
-
-    return menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label));
-  }, [isAdmin, menuItems]);
-
-  const dataManagementItems = useMemo(() => {
-    if (isAdmin) {
-      return [];
-    }
-
-    return menuItems.filter(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label));
-  }, [isAdmin, menuItems]);
-
-  const profileItems = useMemo(() => {
-    if (isAdmin) {
-      return [];
-    }
-
-    return menuItems.filter(item => item.label === 'User Profile');
-  }, [isAdmin, menuItems]);
-
-  const adminItems = useMemo(() => {
-    if (isAdmin) {
-      return [{ label: 'ADMIN PANEL', icon: Settings, path: '/admin' }];
-    }
-
-    return menuItems.filter(item => item.label === 'ADMIN PANEL');
-  }, [isAdmin, menuItems]);
+  }, [user?.role]);
 
   const currentMenuItem = useMemo(() => {
     return menuItems.find(item =>
@@ -245,7 +211,7 @@ export default function Dashboard() {
     );
   }, [menuItems, location.pathname]);
 
-  const pageTitle = currentMenuItem ? currentMenuItem.label : (isAdmin ? 'ADMIN PANEL' : 'Dashboard');
+  const pageTitle = currentMenuItem ? currentMenuItem.label : 'Dashboard';
 
   return (
     <div className="min-h-screen flex bg-slate-100 text-slate-900">
@@ -265,13 +231,13 @@ export default function Dashboard() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-7 custom-scrollbar">
           {/* Main Menu Group */}
-          {mainMenuItems.length > 0 && (
+          {menuItems.some(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label)) && (
             <div>
               <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
                 Main Menu
               </p>
               <div className="space-y-1">
-                {mainMenuItems.map(({ label, icon: Icon, path }) => {
+                {menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label)).map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
                   return (
                     <Link
@@ -295,13 +261,13 @@ export default function Dashboard() {
           )}
 
           {/* Data Management Group */}
-          {dataManagementItems.length > 0 && (
+          {menuItems.some(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label)) && (
             <div>
               <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
                 Data Management
               </p>
               <div className="space-y-1">
-                {dataManagementItems.map(({ label, icon: Icon, path }) => {
+                {menuItems.filter(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label)).map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
                   const isAccountant = label.includes('Accountant');
                   return (
@@ -327,13 +293,13 @@ export default function Dashboard() {
             </div>
           )}
 
-          {profileItems.length > 0 && (
+          {menuItems.some(item => item.label === 'User Profile') && (
             <div>
               <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
                 Account
               </p>
               <div className="space-y-1">
-                {profileItems.map(({ label, icon: Icon, path }) => {
+                {menuItems.filter(item => item.label === 'User Profile').map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path;
                   return (
                     <Link
@@ -357,13 +323,13 @@ export default function Dashboard() {
           )}
 
           {/* Admin Section */}
-          {adminItems.length > 0 && (
+          {menuItems.some(item => item.label === 'ADMIN PANEL') && (
             <div>
               <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
                 Administration
               </p>
               <div className="space-y-1">
-                {adminItems.map(({ label, icon: Icon, path }) => {
+                {menuItems.filter(item => item.label === 'ADMIN PANEL').map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
                   return (
                     <Link
@@ -429,42 +395,44 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {!isAdmin && (
-          <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
-            <div className="flex gap-2 min-w-max">
-              {menuItems.map(({ label, path }) => {
-                const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
-                return (
-                  <Link
-                    key={label}
-                    to={path}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-slate-600 border-slate-200'
-                      }`}
-                  >
-                    {label}
-                  </Link>
-                );
-              })}
-            </div>
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {menuItems.map(({ label, path }) => {
+              const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
+              return (
+                <Link
+                  key={label}
+                  to={path}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         <main className="flex-1 px-5 py-4 md:px-8 md:py-5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
-            <Outlet
-              context={{
-                summary,
-                records,
-                recordsLoading,
-                recordsError,
-                refreshTrigger,
-                handleImportSuccess,
-                handleAccountantImportSuccess,
-                handleDeleteSuccess,
-              }}
-            />
+            {location.pathname === '/accountant-details' ? (
+              <AccountantProgressAnalytics refreshTrigger={refreshTrigger} />
+            ) : (
+              <Outlet
+                context={{
+                  summary,
+                  records,
+                  recordsLoading,
+                  recordsError,
+                  refreshTrigger,
+                  handleImportSuccess,
+                  handleAccountantImportSuccess,
+                  handleDeleteSuccess,
+                }}
+              />
+            )}
           </div>
         </main>
       </div>
