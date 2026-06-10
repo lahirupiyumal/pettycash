@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
@@ -6,12 +7,28 @@ require('dotenv').config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'pettycash-oauth',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 10 * 60 * 1000,
+  },
+}));
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/password-reset', require('./routes/passwordReset'));
 app.use('/api/transactions', require('./routes/transactions'));
+app.use('/api/records', require('./routes/records'));
+app.use('/api/accountants', require('./routes/accountants'));
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
     app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
