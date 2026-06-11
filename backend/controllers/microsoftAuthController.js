@@ -18,7 +18,7 @@ const redirectWithError = (res, message) =>
 const buildAuthRedirect = (user) => {
   const payload = {
     token: createJwt(user),
-    user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    user: { id: user._id, name: user.name, email: user.email, role: user.role, joinedDate: user.createdAt },
   };
   const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return `${FRONTEND_LOGIN}?auth=${encoded}`;

@@ -11,6 +11,17 @@ const getInitials = (fullName = '') => {
   return initials || 'U';
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
 export default function UserProfileCard({ user, loading = false, onEdit }) {
   if (loading) {
     return (
@@ -79,7 +90,7 @@ export default function UserProfileCard({ user, loading = false, onEdit }) {
 
               <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
                 <div className="text-sm font-medium text-slate-600">Joined</div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">{user?.joinedDate ? new Date(user.joinedDate).toLocaleDateString() : '—'}</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">{formatDate(user?.joinedDate)}</div>
               </div>
             </div>
           </div>
