@@ -1,9 +1,31 @@
 const jwt = require('jsonwebtoken');
 const { CryptoProvider } = require('@azure/msal-node');
+const crypto = require('crypto');
 const User = require('../models/User');
 const { msalClient, REDIRECT_URI, MICROSOFT_SCOPES } = require('../config/msalClient');
 
 const cryptoProvider = new CryptoProvider();
+
+const ENCRYPTION_KEY = crypto.scryptSync(process.env.JWT_SECRET || 'fallback-secret-key-32-chars-long-min', 'salt', 32);
+const IV_LENGTH = 16;
+
+function encrypt(text) {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+function decrypt(text) {
+  const textParts = text.split(':');
+  const iv = Buffer.from(textParts.shift(), 'hex');
+  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
 
 const FRONTEND_LOGIN = `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')}/login`;
 const TOKEN_URL = `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/oauth2/v2.0/token`;
@@ -63,7 +85,12 @@ exports.microsoftLogin = async (req, res) => {
     }
 
     const { verifier, challenge } = await cryptoProvider.generatePkceCodes();
-    req.session.msPkceVerifier = verifier;
+    
+    const statePayload = JSON.stringify({
+      verifier,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes expiry
+    });
+    const state = encrypt(statePayload);
 
     const authUrl = await msalClient.getAuthCodeUrl({
       scopes: MICROSOFT_SCOPES,
@@ -71,15 +98,10 @@ exports.microsoftLogin = async (req, res) => {
       responseMode: 'query',
       codeChallenge: challenge,
       codeChallengeMethod: 'S256',
+      state: state,
     });
 
-    return req.session.save((err) => {
-      if (err) {
-        console.error('[Microsoft Login] Session error:', err);
-        return redirectWithError(res, 'Failed to start Microsoft login.');
-      }
-      return res.redirect(authUrl);
-    });
+    return res.redirect(authUrl);
   } catch (err) {
     console.error('[Microsoft Login]', err);
     return redirectWithError(res, err.message || 'Failed to start Microsoft login.');
@@ -88,7 +110,7 @@ exports.microsoftLogin = async (req, res) => {
 
 // SPA apps must redeem the auth code in the browser (cross-origin). This page does that.
 exports.microsoftCallback = async (req, res) => {
-  const { code, error, error_description: errorDescription } = req.query;
+  const { code, state, error, error_description: errorDescription } = req.query;
 
   if (error) {
     console.error('[Microsoft Callback]', error, errorDescription);
@@ -99,8 +121,20 @@ exports.microsoftCallback = async (req, res) => {
     return redirectWithError(res, 'Microsoft login was not completed.');
   }
 
-  const codeVerifier = req.session?.msPkceVerifier;
-  delete req.session.msPkceVerifier;
+  let codeVerifier;
+  try {
+    if (!state) {
+      throw new Error('Missing state parameter.');
+    }
+    const decryptedPayload = JSON.parse(decrypt(state));
+    if (decryptedPayload.expiresAt < Date.now()) {
+      throw new Error('State token expired.');
+    }
+    codeVerifier = decryptedPayload.verifier;
+  } catch (err) {
+    console.error('[Microsoft Callback] State verification failed:', err);
+    return redirectWithError(res, 'Microsoft login session expired. Please try again.');
+  }
 
   if (!codeVerifier) {
     return redirectWithError(res, 'Microsoft login session expired. Please try again.');
