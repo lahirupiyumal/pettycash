@@ -18,7 +18,7 @@ export default function Profile() {
     role: user?.role || defaultUserProfile.role,
     region: user?.region || defaultUserProfile.region,
     bio: user?.bio || defaultUserProfile.bio,
-    joinedDate: user?.createdAt || user?.joinedDate || defaultUserProfile.joinedDate,
+    joinedDate: user?.joinedDate || null,
     transactionCount: user?.transactionCount ?? defaultUserProfile.transactionCount,
   };
   const handleEdit = () => {

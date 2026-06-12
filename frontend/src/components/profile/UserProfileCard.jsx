@@ -11,7 +11,18 @@ const getInitials = (fullName = '') => {
   return initials || 'U';
 };
 
-export default function UserProfileCard({ user, loading = false }) {
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+export default function UserProfileCard({ user, loading = false, onEdit }) {
   if (loading) {
     return (
       <div className="flex min-h-[72vh] w-full items-center justify-center bg-white">
@@ -33,8 +44,30 @@ export default function UserProfileCard({ user, loading = false }) {
             </div>
           </div>
 
-          <div className="absolute -bottom-1 left-8 flex h-11 w-11 items-center justify-center rounded-full border-4 border-white bg-emerald-500 text-white shadow-md">
-            <CheckCircle2 className="h-5 w-5" />
+          <div className="mt-4 text-left">
+            <h1 className="text-2xl font-semibold leading-none tracking-tight text-slate-900">
+              {user?.fullName || 'User Name'}
+            </h1>
+            <p className="mt-1 text-sm text-slate-200">{user?.email || 'user@example.com'}</p>
+
+            <p className="mt-4 text-sm text-slate-600">{user?.bio || 'No bio provided.'}</p>
+
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
+                <div className="text-sm font-medium text-slate-600">Role</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">{user?.role || 'Accountant'}</div>
+              </div>
+
+              <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
+                <div className="text-sm font-medium text-slate-600">Region</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">{user?.region || 'Head Office'}</div>
+              </div>
+
+              <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
+                <div className="text-sm font-medium text-slate-600">Joined</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">{formatDate(user?.joinedDate)}</div>
+              </div>
+            </div>
           </div>
         </div>
 

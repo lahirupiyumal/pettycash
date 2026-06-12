@@ -5,7 +5,7 @@ const User = require('../models/User');
 
 const microsoftScopes = ['openid', 'profile', 'email', 'User.Read'];
 
-const getBackendUrl = () => process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`;
+const getBackendUrl = () => process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
 const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const createAuthToken = (user) => jwt.sign(
@@ -21,7 +21,7 @@ const createAuthResponse = (user) => ({
     name: user.name,
     email: user.email,
     role: user.role,
-    createdAt: user.createdAt,
+    joinedDate: user.createdAt,
   },
 });
 
@@ -61,7 +61,6 @@ const getMicrosoftName = (claims = {}, email = '') => (
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    
     // Automatically set role and status for admin, else pending
     const isAdmin = email === 'admin@gmail.com';
     const role = isAdmin ? 'admin' : 'user';
@@ -90,7 +89,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt } });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, joinedDate: user.createdAt } });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -206,7 +205,6 @@ exports.updateStatus = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
     // Prevent admin from deleting themselves
     if (id === req.user.id) {
       return res.status(400).json({ message: 'You cannot delete your own admin account' });
@@ -214,7 +212,6 @@ exports.deleteUser = async (req, res) => {
 
     const user = await User.findByIdAndDelete(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
