@@ -181,6 +181,7 @@ export default function Dashboard() {
   }, []);
 
   const isAdmin = user?.role === 'admin';
+  const isAccountant = user?.role === 'accountant';
 
   const menuItems = useMemo(() => {
     const items = [
@@ -207,29 +208,49 @@ export default function Dashboard() {
     return items;
   }, [isAdmin]);
 
+  // Accountant-specific menu items
+  const accountantMenuItems = useMemo(() => {
+    if (!isAccountant) {
+      return [];
+    }
+    return menuItems.filter(item => [
+      'Accountant Details',
+      'Accountant Data',
+      'Accountant Import'
+    ].includes(item.label));
+  }, [isAccountant, menuItems]);
+
   const mainMenuItems = useMemo(() => {
-    if (isAdmin) {
+    if (isAdmin || isAccountant) {
       return [];
     }
 
-    return menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'].includes(item.label));
-  }, [isAdmin, menuItems]);
+    return menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label));
+  }, [isAdmin, isAccountant, menuItems]);
 
   const dataManagementItems = useMemo(() => {
-    if (isAdmin) {
+    if (isAdmin || isAccountant) {
       return [];
     }
 
-    return menuItems.filter(item => ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'].includes(item.label));
-  }, [isAdmin, menuItems]);
+    return menuItems.filter(item => ['Imported Data', 'Import Excel File'].includes(item.label));
+  }, [isAdmin, isAccountant, menuItems]);
 
   const profileItems = useMemo(() => {
-    if (isAdmin) {
+    if (isAdmin || isAccountant) {
       return [];
     }
 
     return menuItems.filter(item => item.label === 'User Profile');
-  }, [isAdmin, menuItems]);
+  }, [isAdmin, isAccountant, menuItems]);
+
+  // Accountant profile section (separate from regular users)
+  const accountantProfileItems = useMemo(() => {
+    if (!isAccountant) {
+      return [];
+    }
+    return menuItems.filter(item => item.label === 'User Profile');
+  }, [isAccountant, menuItems]);
 
   const adminItems = useMemo(() => {
     if (isAdmin) {
@@ -294,6 +315,36 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Accountant Menu Group - Shows only for accountants */}
+          {accountantMenuItems.length > 0 && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Main Menu
+              </p>
+              <div className="space-y-1">
+                {accountantMenuItems.map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path;
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Data Management Group */}
           {dataManagementItems.length > 0 && (
             <div>
@@ -303,13 +354,13 @@ export default function Dashboard() {
               <div className="space-y-1">
                 {dataManagementItems.map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
-                  const isAccountant = label.includes('Accountant');
+                  const isAcc = label.includes('Accountant');
                   return (
                     <Link
                       key={label}
                       to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
-                          ? isAccountant
+                          ? isAcc
                             ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 ring-1 ring-white/10'
                             : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-white/10'
                           : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
@@ -327,6 +378,7 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Profile section for regular users */}
           {profileItems.length > 0 && (
             <div>
               <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
@@ -334,6 +386,36 @@ export default function Dashboard() {
               </p>
               <div className="space-y-1">
                 {profileItems.map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path;
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-900/40 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Accountant Profile Section */}
+          {accountantProfileItems.length > 0 && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Account
+              </p>
+              <div className="space-y-1">
+                {accountantProfileItems.map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path;
                   return (
                     <Link
@@ -432,21 +514,24 @@ export default function Dashboard() {
         {!isAdmin && (
           <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
             <div className="flex gap-2 min-w-max">
-              {menuItems.map(({ label, path }) => {
-                const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
-                return (
-                  <Link
-                    key={label}
-                    to={path}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-slate-600 border-slate-200'
-                      }`}
-                  >
-                    {label}
-                  </Link>
-                );
-              })}
+              {/* Mobile navigation items based on role */}
+              {(isAccountant ? accountantMenuItems.concat(accountantProfileItems) : 
+                mainMenuItems.concat(dataManagementItems).concat(profileItems))
+                .map(({ label, path }) => {
+                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-600 border-slate-200'
+                        }`}
+                    >
+                      {label}
+                    </Link>
+                  );
+                })}
             </div>
           </div>
         )}

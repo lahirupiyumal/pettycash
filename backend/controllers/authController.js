@@ -60,11 +60,11 @@ const getMicrosoftName = (claims = {}, email = '') => (
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role: requestedRole } = req.body;
 
-    // Automatically set role and status for admin, else pending
+    // Automatically set role and status for admin, else use requested role or default to user
     const isAdmin = email === 'admin@gmail.com';
-    const role = isAdmin ? 'admin' : 'user';
+    const role = isAdmin ? 'admin' : (requestedRole === 'accountant' ? 'accountant' : 'user');
     const status = isAdmin ? 'approved' : 'pending';
 
     const hashed = await bcrypt.hash(password, 10);

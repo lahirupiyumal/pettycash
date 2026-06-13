@@ -29,7 +29,13 @@ const PrivateRoute = ({ children }) => {
 
 function DashboardIndex() {
   const { user } = useAuth();
-  return <Navigate to={user?.role === 'admin' ? '/admin' : '/overview'} replace />;
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+  if (user?.role === 'accountant') {
+    return <Navigate to="/accountant-details" replace />;
+  }
+  return <Navigate to="/overview" replace />;
 }
 
 export default function App() {
