@@ -8,7 +8,8 @@ const userSchema = new mongoose.Schema({
   authProvider: { type: String, enum: ['local', 'microsoft'], default: 'local' },
   role: { type: String, enum: ['admin', 'user', 'accountant'], default: 'user' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  isApproved: { type: Boolean, default: false }
+  isApproved: { type: Boolean, default: false },
+  roleSelected: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

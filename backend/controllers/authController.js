@@ -68,7 +68,7 @@ exports.register = async (req, res) => {
     const status = isAdmin ? 'approved' : 'pending';
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed, role, status, authProvider: 'local' });
+    const user = await User.create({ name, email, password: hashed, role, status, authProvider: 'local', roleSelected: true });
     res.status(201).json({ message: isAdmin ? 'Admin account created' : 'Registration successful. Waiting for admin approval.' });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -196,7 +196,13 @@ exports.updateStatus = async (req, res) => {
     if (!['approved', 'rejected', 'pending'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
-    const user = await User.findByIdAndUpdate(userId, { status }, { new: true });
+    const updateData = { status };
+    if (status === 'approved') {
+      updateData.isApproved = true;
+    } else {
+      updateData.isApproved = false;
+    }
+    const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -218,5 +224,30 @@ exports.deleteUser = async (req, res) => {
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+exports.selectRole = async (req, res) => {
+  try {
+    const { userId, role } = req.body;
+    if (!userId || !role) {
+      return res.status(400).json({ message: 'User ID and role are required.' });
+    }
+    if (!['user', 'accountant'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role selection.' });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    if (user.status !== 'pending') {
+      return res.status(400).json({ message: 'Role can only be selected for pending accounts.' });
+    }
+    user.role = role;
+    user.roleSelected = true;
+    await user.save();
+    return res.json({ message: 'Role selected successfully. Your account is pending admin approval.' });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Failed to select role.' });
   }
 };

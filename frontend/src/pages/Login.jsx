@@ -12,6 +12,11 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [pendingRoleSelection, setPendingRoleSelection] = useState(false);
+  const [selectRoleUserId, setSelectRoleUserId] = useState(null);
+  const [selectedRole, setSelectedRole] = useState('user');
+  const [submittingRole, setSubmittingRole] = useState(false);
+
   // Once token state is committed (by login() or from localStorage on mount),
   // redirect away from login page to the dashboard.
   useEffect(() => {
@@ -25,6 +30,16 @@ export default function Login() {
     const authValue = params.get('auth');
     const errorValue = params.get('error');
     const successValue = params.get('success');
+    const selectRoleValue = params.get('selectRole');
+    const userIdValue = params.get('userId');
+
+    if (selectRoleValue === 'true' && userIdValue) {
+      setPendingRoleSelection(true);
+      setSelectRoleUserId(userIdValue);
+      setError('');
+      setSuccess('');
+      return;
+    }
 
     if (errorValue) {
       setError(errorValue);
@@ -74,6 +89,27 @@ export default function Login() {
     }
   };
 
+  const handleRoleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingRole(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.post('/auth/select-role', {
+        userId: selectRoleUserId,
+        role: selectedRole,
+      });
+      setSuccess('Your account request has been sent to the administrator for approval. Please wait until your account is approved.');
+      setPendingRoleSelection(false);
+      setSelectRoleUserId(null);
+      navigate('/login', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to select role. Please try again.');
+    } finally {
+      setSubmittingRole(false);
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 text-slate-900">
       <div className="absolute inset-0 bg-[linear-gradient(135deg,#f8fbff_0%,#edf7ff_46%,#f4fff7_100%)]" />
@@ -91,95 +127,144 @@ export default function Login() {
         </div>
 
         <div className="w-full overflow-hidden rounded-3xl border border-white/80 bg-white/90 shadow-2xl shadow-slate-300/40 backdrop-blur-xl">
-          <div className="border-b border-slate-200/80 bg-white/70 px-8 py-7 text-center">
-            <h2 className="text-3xl font-black tracking-tight text-slate-950">Sign In</h2>
-            <p className="mt-2 text-sm font-medium text-slate-500">Finance Portal Access</p>
-          </div>
-
-          <div className="px-8 py-8">
-            {error && (
-              <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-700">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-700">
-                {success}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="email">Email Address</label>
-                <input
-                  id="email"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                  required
-                />
+          {pendingRoleSelection ? (
+            <>
+              <div className="border-b border-slate-200/80 bg-white/70 px-8 py-7 text-center">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-sky-600 mb-2">Finance Portal</p>
+                <h2 className="text-3xl font-black tracking-tight text-slate-950">Select Account Type</h2>
+                <p className="mt-2 text-sm font-medium text-slate-500">First-time Microsoft Login Setup</p>
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
-                  required
-                />
+              <div className="px-8 py-8">
+                {error && (
+                  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-700 shadow-inner shadow-red-100">
+                    {error}
+                  </div>
+                )}
+
+                <form onSubmit={handleRoleSubmit} className="space-y-6">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="role">Account Type</label>
+                    <select
+                      id="role"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-900 shadow-inner outline-none transition-all duration-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                      value={selectedRole}
+                      onChange={e => setSelectedRole(e.target.value)}
+                      required
+                    >
+                      <option value="user">User</option>
+                      <option value="accountant">Accountant</option>
+                    </select>
+                    <p className="mt-1.5 text-[10px] text-slate-400">
+                      {selectedRole === 'user' 
+                        ? 'Standard user account with basic access' 
+                        : 'Accountant account with extended data management privileges'}
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingRole}
+                    className="mt-6 w-full rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-emerald-500 py-3.5 font-bold tracking-wide text-white shadow-lg shadow-blue-200 transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-300 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
+                  >
+                    {submittingRole ? 'Submitting Request...' : 'Confirm & Request Access'}
+                  </button>
+                </form>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="border-b border-slate-200/80 bg-white/70 px-8 py-7 text-center">
+                <h2 className="text-3xl font-black tracking-tight text-slate-950">Sign In</h2>
+                <p className="mt-2 text-sm font-medium text-slate-500">Finance Portal Access</p>
               </div>
 
-              <div className="text-right">
-                <Link to="/forgot-password" className="text-sm font-bold text-sky-600 transition-colors hover:text-sky-700 hover:underline underline-offset-4">
-                  Forgot password?
-                </Link>
+              <div className="px-8 py-8">
+                {error && (
+                  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-700">
+                    {success}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="email">Email Address</label>
+                    <input
+                      id="email"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={form.email}
+                      onChange={e => setForm({ ...form, email: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="password">Password</label>
+                    <input
+                      id="password"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                      type="password"
+                      placeholder="••••••••"
+                      value={form.password}
+                      onChange={e => setForm({ ...form, password: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="text-right">
+                    <Link to="/forgot-password" className="text-sm font-bold text-sky-600 transition-colors hover:text-sky-700 hover:underline underline-offset-4">
+                      Forgot password?
+                    </Link>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="mt-4 w-full rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-emerald-500 py-3.5 font-bold tracking-wide text-white shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] hover:shadow-blue-300 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
+                  >
+                    {loading ? 'Authenticating...' : 'Sign In'}
+                  </button>
+                </form>
+
+                <div className="my-6 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">or</span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleMicrosoftLogin}
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3.5 font-bold text-slate-700 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-slate-100"
+                >
+                  <span className="grid h-5 w-5 grid-cols-2 gap-0.5" aria-hidden="true">
+                    <span className="bg-[#f25022]" />
+                    <span className="bg-[#7fba00]" />
+                    <span className="bg-[#00a4ef]" />
+                    <span className="bg-[#ffb900]" />
+                  </span>
+                  Log in with Microsoft
+                </button>
+
+                <div className="mt-8 border-t border-slate-200 pt-6 text-center">
+                  <p className="text-sm text-slate-500">
+                    Don't have an account?{' '}
+                    <Link to="/register" className="font-bold text-sky-600 transition-colors hover:text-sky-700 hover:underline underline-offset-4">
+                      Request Access
+                    </Link>
+                  </p>
+                </div>
               </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-4 w-full rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-emerald-500 py-3.5 font-bold tracking-wide text-white shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] hover:shadow-blue-300 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
-              >
-                {loading ? 'Authenticating...' : 'Sign In'}
-              </button>
-            </form>
-
-            <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">or</span>
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleMicrosoftLogin}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3.5 font-bold text-slate-700 shadow-sm transition-all hover:border-slate-400 hover:bg-slate-50 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-slate-100"
-            >
-              <span className="grid h-5 w-5 grid-cols-2 gap-0.5" aria-hidden="true">
-                <span className="bg-[#f25022]" />
-                <span className="bg-[#7fba00]" />
-                <span className="bg-[#00a4ef]" />
-                <span className="bg-[#ffb900]" />
-              </span>
-              Log in with Microsoft
-            </button>
-
-            <div className="mt-8 border-t border-slate-200 pt-6 text-center">
-              <p className="text-sm text-slate-500">
-                Don't have an account?{' '}
-                <Link to="/register" className="font-bold text-sky-600 transition-colors hover:text-sky-700 hover:underline underline-offset-4">
-                  Request Access
-                </Link>
-              </p>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
