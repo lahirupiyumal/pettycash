@@ -16,6 +16,7 @@ app.use('/api/password-reset', require('./routes/passwordReset'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/records', require('./routes/records'));
 app.use('/api/accountants', require('./routes/accountants'));
+app.use('/api/audit', require('./routes/audit'));
 
 mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI)
   .then(() => {

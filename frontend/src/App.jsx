@@ -19,6 +19,7 @@ import Dashboard, {
   AccountantDataRoute,
   AccountantImportRoute,
   AccountantDetailsRoute,
+  AuditRoute,
 } from './pages/Dashboard';
 import AdminPanel from './components/AdminPanel';
 
@@ -72,6 +73,9 @@ export default function App() {
             
             {/* Admin Panel Route */}
             <Route path="admin" element={<AdminPanel />} />
+            
+            {/* Audit Route */}
+            <Route path="audit" element={<AuditRoute />} />
           </Route>
         </Routes>
       </BrowserRouter>

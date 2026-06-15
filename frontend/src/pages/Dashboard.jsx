@@ -16,6 +16,7 @@ import CostCenters from '../components/CostCenters';
 import AccountantImport from './AccountantImport';
 import AccountantImportedData from './AccountantImportedData';
 import AccountantProgressAnalytics from './AccountantProgressAnalytics';
+import Audit from './Audit';
 import {
   BarChart3,
   BookUser,
@@ -30,6 +31,7 @@ import {
   Upload,
   Settings,
   UserCircle2,
+  ClipboardList,
 } from 'lucide-react';
 
 // Route wrapper components to pass context props down to existing tab views
@@ -154,6 +156,10 @@ export function AccountantDetailsRoute() {
   return <AccountantProgressAnalytics refreshTrigger={refreshTrigger} />;
 }
 
+export function AuditRoute() {
+  return <Audit />;
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -201,6 +207,7 @@ export default function Dashboard() {
 
     if (isAdmin) {
       items.push({ label: 'ADMIN PANEL', icon: Settings, path: '/admin' });
+      items.push({ label: 'AUDIT', icon: ClipboardList, path: '/audit' });
     }
 
     items.push({ label: 'User Profile', icon: UserCircle2, path: '/profile' });
@@ -254,10 +261,13 @@ export default function Dashboard() {
 
   const adminItems = useMemo(() => {
     if (isAdmin) {
-      return [{ label: 'ADMIN PANEL', icon: Settings, path: '/admin' }];
+      return [
+        { label: 'ADMIN PANEL', icon: Settings, path: '/admin' },
+        { label: 'AUDIT', icon: ClipboardList, path: '/audit' },
+      ];
     }
 
-    return menuItems.filter(item => item.label === 'ADMIN PANEL');
+    return menuItems.filter(item => item.label === 'ADMIN PANEL' || item.label === 'AUDIT');
   }, [isAdmin, menuItems]);
 
   const currentMenuItem = useMemo(() => {
