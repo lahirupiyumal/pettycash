@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'user' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,8 @@ export default function Register() {
       const { data } = await api.post('/auth/register', { 
         name: form.name, 
         email: form.email, 
-        password: form.password
+        password: form.password,
+        role: form.role
       });
       setSuccess(data.message);
       // Auto-redirect after 3 seconds
@@ -127,6 +128,25 @@ export default function Register() {
                   required 
                   minLength={6}
                 />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="role">Account Type</label>
+                <select
+                  id="role"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-900 shadow-inner outline-none transition-all duration-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                  value={form.role}
+                  onChange={e => setForm({ ...form, role: e.target.value })}
+                  required
+                >
+                  <option value="user">User</option>
+                  <option value="accountant">Accountant</option>
+                </select>
+                <p className="mt-1.5 text-[10px] text-slate-400">
+                  {form.role === 'user' 
+                    ? 'Standard user account with basic access' 
+                    : 'Accountant account with extended data management privileges'}
+                </p>
               </div>
 
               <button 

@@ -2,104 +2,273 @@ const mongoose = require('mongoose');
 const { Types } = mongoose;
 const PettyCashRecord = require('../models/PettyCashRecord');
 const ImportedFile = require('../models/ImportedFile');
+const User = require('../models/User');
+const { createAuditLog } = require('../middleware/audit');
+const XLSX = require('xlsx');
+
+const processImportRecords = async (records, fileName, userId) => {
+  if (!records || !Array.isArray(records) || records.length === 0) {
+    throw new Error('Invalid records array');
+  }
+
+  // Step 1: Deduplicate rows within the uploaded file itself
+  const uniqueIncoming = [];
+  const seenKeys = new Set();
+  for (const r of records) {
+    const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueIncoming.push(r);
+    }
+  }
+
+  const isGoogleDriveSync = fileName === 'GoogleDrive_PettyCash.xlsx';
+
+  if (isGoogleDriveSync) {
+    let importFile = await ImportedFile.findOne({
+      fileName: fileName,
+      createdBy: userId,
+      type: 'pettyCash'
+    });
+
+    if (!importFile) {
+      importFile = await ImportedFile.create({
+        fileName: fileName,
+        createdBy: userId,
+        recordCount: 0,
+        type: 'pettyCash',
+      });
+    }
+
+    const ops = uniqueIncoming.map(record => ({
+      updateOne: {
+        filter: {
+          createdBy: userId,
+          region: record.region,
+          pcfRef: record.pcfRef,
+          year: record.year,
+          month: record.month
+        },
+        update: {
+          $set: {
+            ...record,
+            createdBy: userId,
+            sourceFileName: fileName,
+            importFileId: importFile._id
+          }
+        },
+        upsert: true
+      }
+    }));
+
+    await PettyCashRecord.bulkWrite(ops);
+
+    importFile = await ImportedFile.findByIdAndUpdate(
+      importFile._id,
+      { recordCount: uniqueIncoming.length },
+      { new: true }
+    );
+
+    return {
+      message: `Successfully synchronized ${uniqueIncoming.length} record(s) from Google Drive.`,
+      count: uniqueIncoming.length,
+      skipped: 0,
+      file: {
+        id: importFile._id,
+        fileName: importFile.fileName,
+      },
+    };
+  }
+
+  // Step 2: Find records that already exist in the DB for this user
+  const existingDocs = await PettyCashRecord.find({
+    createdBy: userId,
+    $or: uniqueIncoming.map(r => ({
+      region: r.region,
+      pcfRef: r.pcfRef,
+      year: r.year,
+      month: r.month,
+    })),
+  }).select('region pcfRef year month');
+
+  const existingKeys = new Set(
+    existingDocs.map(r =>
+      `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`
+    )
+  );
+
+  // Step 3: Keep only records that do NOT exist in the DB
+  const newRecords = uniqueIncoming.filter(r => {
+    const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
+    return !existingKeys.has(key);
+  });
+
+  const skipped = records.length - newRecords.length;
+
+  let importFile = null;
+
+  if (newRecords.length === 0) {
+    return {
+      message: `No new records imported. All ${skipped} record(s) already exist in the system.`,
+      count: 0,
+      skipped,
+    };
+  }
+
+  if (!importFile) {
+    importFile = await ImportedFile.create({
+      fileName: fileName || 'Imported Excel File',
+      createdBy: userId,
+      recordCount: 0,
+      type: 'pettyCash',
+    });
+  }
+
+  const recordsToInsert = newRecords.map(record => ({
+    ...record,
+    createdBy: userId,
+    sourceFileName: fileName || 'Imported Excel File',
+    importFileId: importFile._id,
+  }));
+
+  let insertedCount = 0;
+  let dbSkipped = 0;
+
+  try {
+    // ordered: false → MongoDB continues on duplicate key errors instead of stopping
+    const result = await PettyCashRecord.insertMany(recordsToInsert, { ordered: false });
+    insertedCount = result.length;
+  } catch (bulkErr) {
+    // Code 11000 = duplicate key — some records inserted, some skipped
+    if (bulkErr.code === 11000 || bulkErr.name === 'BulkWriteError') {
+      insertedCount = bulkErr.result?.nInserted ?? 0;
+      dbSkipped = recordsToInsert.length - insertedCount;
+    } else {
+      throw bulkErr; // rethrow unexpected errors
+    }
+  }
+
+  const totalSkipped = skipped + dbSkipped;
+  
+  importFile = await ImportedFile.findByIdAndUpdate(
+    importFile._id, 
+    { $inc: { recordCount: insertedCount } },
+    { new: true }
+  );
+
+  return {
+    message: `Successfully imported ${insertedCount} record(s).${totalSkipped > 0 ? ` ${totalSkipped} duplicate(s) were skipped.` : ''}`,
+    count: insertedCount,
+    skipped: totalSkipped,
+    file: {
+      id: importFile._id,
+      fileName: importFile.fileName,
+    },
+  };
+};
 
 exports.importRecords = async (req, res) => {
   try {
     const records = req.body.records;
     const fileName = req.body.fileName;
-    if (!records || !Array.isArray(records) || records.length === 0) {
-      return res.status(400).json({ message: 'Invalid records array' });
-    }
-
-    // Step 1: Deduplicate rows within the uploaded file itself
-    const uniqueIncoming = [];
-    const seenKeys = new Set();
-    for (const r of records) {
-      const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        uniqueIncoming.push(r);
-      }
-    }
-
-    // Step 2: Find records that already exist in the DB for this user
-    const existingDocs = await PettyCashRecord.find({
-      createdBy: req.user.id,
-      $or: uniqueIncoming.map(r => ({
-        region: r.region,
-        pcfRef: r.pcfRef,
-        year: r.year,
-        month: r.month,
-      })),
-    }).select('region pcfRef year month');
-
-    const existingKeys = new Set(
-      existingDocs.map(r =>
-        `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`
-      )
-    );
-
-    // Step 3: Keep only records that do NOT exist in the DB
-    const newRecords = uniqueIncoming.filter(r => {
-      const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
-      return !existingKeys.has(key);
-    });
-
-    const skipped = records.length - newRecords.length;
-
-    if (newRecords.length === 0) {
-      return res.status(200).json({
-        message: `No new records imported. All ${skipped} record(s) already exist in the system.`,
-        count: 0,
-        skipped,
-      });
-    }
-
-    const importFile = await ImportedFile.create({
-      fileName: fileName || 'Imported Excel File',
-      createdBy: req.user.id,
-      recordCount: newRecords.length,
-      type: 'pettyCash',
-    });
-
-    const recordsToInsert = newRecords.map(record => ({
-      ...record,
-      createdBy: req.user.id,
-      sourceFileName: fileName || 'Imported Excel File',
-      importFileId: importFile._id,
-    }));
-
-    let insertedCount = 0;
-    let dbSkipped = 0;
-
-    try {
-      // ordered: false → MongoDB continues on duplicate key errors instead of stopping
-      const result = await PettyCashRecord.insertMany(recordsToInsert, { ordered: false });
-      insertedCount = result.length;
-    } catch (bulkErr) {
-      // Code 11000 = duplicate key — some records inserted, some skipped
-      if (bulkErr.code === 11000 || bulkErr.name === 'BulkWriteError') {
-        insertedCount = bulkErr.result?.nInserted ?? 0;
-        dbSkipped = recordsToInsert.length - insertedCount;
-      } else {
-        throw bulkErr; // rethrow unexpected errors
-      }
-    }
-
-    const totalSkipped = skipped + dbSkipped;
-    await ImportedFile.findByIdAndUpdate(importFile._id, { recordCount: insertedCount });
-
-    res.status(201).json({
-      message: `Successfully imported ${insertedCount} record(s).${totalSkipped > 0 ? ` ${totalSkipped} duplicate(s) were skipped.` : ''}`,
-      count: insertedCount,
-      skipped: totalSkipped,
-      file: {
-        id: importFile._id,
-        fileName: importFile.fileName,
-      },
-    });
+    const result = await processImportRecords(records, fileName, req.user.id);
+    const status = result.count > 0 ? 201 : 200;
+    res.status(status).json(result);
   } catch (err) {
     console.error('Import error:', err);
+    res.status(500).json({ message: err.message, stack: err.stack });
+  }
+};
+
+const syncPettyCashForUser = async (userId) => {
+  const sheetId = process.env.GOOGLE_DRIVE_PETTYCASH_SHEET_ID || '1NCNqPIdGepw7nl_dHiPuULonvrTDdAq9v1yuU172tso';
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download sheet from Google Drive: ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+
+  const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  if (rows.length < 2) {
+    throw new Error("File is empty or missing headers");
+  }
+
+  const parseNum = (val) => {
+    if (val === undefined || val === null || val === '') return null;
+    const parsed = Number(String(val).replace(/,/g, ''));
+    return isNaN(parsed) ? null : parsed;
+  };
+
+  const records = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0 || !row[0]) continue;
+
+    records.push({
+      region: row[0],
+      pcfRef: row[1],
+      costCenterName: row[2],
+      number: parseNum(row[3]),
+      payingOfficer: {
+        name: row[4],
+        email: row[5],
+        empNumber: parseNum(row[6])
+      },
+      supervisingOfficer: {
+        name: row[7],
+        email: row[8],
+        empNumber: parseNum(row[9])
+      },
+      reportingAccountant: {
+        name: row[10],
+        email: row[11],
+        empNumber: parseNum(row[12])
+      },
+      year: parseNum(row[13]),
+      month: row[14],
+      floatAmount: parseNum(row[15]),
+      cashInHand: parseNum(row[16]),
+      invoiceAmount: parseNum(row[17]),
+      utilization: parseNum(row[18]),
+      variance: parseNum(row[19]),
+      varianceStatus: row[20],
+      checkedStatus: row[21]
+    });
+  }
+
+  return await processImportRecords(records, 'GoogleDrive_PettyCash.xlsx', userId);
+};
+
+exports.syncPettyCashForUser = syncPettyCashForUser;
+
+exports.googleDriveSync = async (req, res) => {
+  try {
+    const result = await syncPettyCashForUser(req.user.id);
+
+    const user = await User.findById(req.user.id).select('name email role').lean();
+    if (user) {
+      await createAuditLog(
+        user,
+        'Imported Petty Cash from Google Drive',
+        'import',
+        `Successfully synchronized ${result.count} record(s) from Google Drive.`,
+        { fileName: 'PettyCash.xlsx', syncSource: 'Google Drive', importedCount: result.count, skippedCount: result.skipped },
+        req
+      );
+    }
+
+    const status = result.count > 0 ? 201 : 200;
+    res.status(status).json(result);
+  } catch (err) {
+    console.error('Google Drive Sync error:', err);
     res.status(500).json({ message: err.message, stack: err.stack });
   }
 };

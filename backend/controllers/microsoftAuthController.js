@@ -233,11 +233,9 @@ exports.microsoftFinish = async (req, res) => {
 
     const { user, isNew } = await upsertMicrosoftUser({ microsoftId, email, name });
 
-    if (isNew) {
+    if (isNew || (user.status === 'pending' && !user.roleSelected)) {
       return res.json({
-        redirect: `${FRONTEND_LOGIN}?success=${encodeURIComponent(
-          'Your account request has been sent to the administrator for approval. Please wait until your account is approved.'
-        )}`
+        redirect: `${FRONTEND_LOGIN}?selectRole=true&userId=${user._id}`
       });
     }
 
