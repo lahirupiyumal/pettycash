@@ -1,6 +1,7 @@
 const msal = require('@azure/msal-node');
 
-const REDIRECT_URI = 'http://localhost:5001/api/auth/microsoft/callback';
+const REDIRECT_URI = process.env.MICROSOFT_REDIRECT_URI
+  || `${(process.env.BACKEND_URL || 'http://localhost:5001').replace(/\/$/, '')}/api/auth/microsoft/callback`;
 
 const msalConfig = {
   auth: {

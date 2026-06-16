@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react';
+import axios from '../api/axios';
 
 const AuthContext = createContext();
 
@@ -20,12 +21,22 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', tokenData);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Call backend logout endpoint to log the logout event
+    // The axios interceptor will automatically add the Authorization header
+    if (token) {
+      try {
+        await axios.post('/auth/logout');
+      } catch (error) {
+        console.error('Logout API call failed:', error);
+      }
+    }
+    // Clear local state regardless of API call success
     setUser(null);
     setToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-  }, []);
+  }, [token]);
 
   return <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>;
 };

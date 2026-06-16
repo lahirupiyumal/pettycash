@@ -1,4 +1,4 @@
-import { CheckCircle2, Edit3 } from 'lucide-react';
+import { CheckCircle2, Edit3, LogOut } from 'lucide-react';
 
 const getInitials = (fullName = '') => {
   const initials = fullName
@@ -11,7 +11,18 @@ const getInitials = (fullName = '') => {
   return initials || 'U';
 };
 
-export default function UserProfileCard({ user, loading = false, onEdit }) {
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+export default function UserProfileCard({ user, loading = false, onEdit, onLogout }) {
   if (loading) {
     return (
       <div className="flex min-h-[72vh] w-full items-center justify-center bg-white">
@@ -55,6 +66,14 @@ export default function UserProfileCard({ user, loading = false, onEdit }) {
                 <Edit3 className="h-4 w-4" />
                 Edit
               </button>
+              <button
+                onClick={() => (onLogout ? onLogout() : window.alert('Logout'))}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 shadow-sm transition hover:bg-red-100"
+                aria-label="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
             </div>
           </div>
 
@@ -79,7 +98,7 @@ export default function UserProfileCard({ user, loading = false, onEdit }) {
 
               <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
                 <div className="text-sm font-medium text-slate-600">Joined</div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">{user?.joinedDate ? new Date(user.joinedDate).toLocaleDateString() : '—'}</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">{formatDate(user?.joinedDate)}</div>
               </div>
             </div>
           </div>
