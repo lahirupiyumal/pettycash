@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const auth = require('../middleware/auth');
+const { auth, admin } = require('../middleware/auth');
 const { 
   importAccountants, 
   googleDriveSync,
@@ -8,10 +8,10 @@ const {
   deleteAccountants 
 } = require('../controllers/accountantController');
 
-router.post('/import', auth, importAccountants);
-router.post('/google-drive-sync', auth, googleDriveSync);
-router.get('/files', auth, getImportedFiles);
+router.post('/import', auth, admin, importAccountants);
+router.post('/google-drive-sync', auth, admin, googleDriveSync);
+router.get('/files', auth, admin, getImportedFiles);
 router.get('/', auth, getAccountants);
-router.delete('/', auth, deleteAccountants);
+router.delete('/', auth, admin, deleteAccountants);
 
 module.exports = router;

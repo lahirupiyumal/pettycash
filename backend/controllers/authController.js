@@ -63,9 +63,9 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, role: requestedRole } = req.body;
 
-    // Automatically set role and status for admin, else use requested role or default to user
+    // Automatically set role and status for admin, else use requested role or default to department lead
     const isAdmin = email === 'admin@gmail.com';
-    const role = isAdmin ? 'admin' : (requestedRole === 'accountant' ? 'accountant' : 'user');
+    const role = isAdmin ? 'admin' : (requestedRole === 'accountant' ? 'accountant' : 'department lead');
     const status = isAdmin ? 'approved' : 'pending';
 
     const hashed = await bcrypt.hash(password, 10);
@@ -171,7 +171,7 @@ exports.microsoftCallback = async (req, res) => {
         password: '',
         microsoftId,
         authProvider: 'microsoft',
-        role: 'user',
+        role: 'department lead',
         status: 'approved',
       });
     } else {
@@ -256,7 +256,7 @@ exports.selectRole = async (req, res) => {
     if (!userId || !role) {
       return res.status(400).json({ message: 'User ID and role are required.' });
     }
-    if (!['user', 'accountant'].includes(role)) {
+    if (!['department lead', 'accountant'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role selection.' });
     }
     const user = await User.findById(userId);

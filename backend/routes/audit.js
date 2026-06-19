@@ -6,10 +6,10 @@ const {
   getActivitySummary,
   getUserAuditTrail
 } = require('../controllers/auditController');
-const auth = require('../middleware/auth');
+const { auth, admin } = require('../middleware/auth');
 
-// All routes require authentication
-router.use(auth);
+// All routes require authentication and admin role
+router.use(auth, admin);
 
 // @route   GET /api/audit/logs
 // @desc    Get all audit logs with filtering and pagination

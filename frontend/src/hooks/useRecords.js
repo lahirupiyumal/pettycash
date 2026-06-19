@@ -9,7 +9,6 @@ export function useRecords(refreshTrigger = 0) {
   useEffect(() => {
     const fetchRecords = async () => {
       try {
-        setLoading(true);
         const res = await api.get('/records');
         setRecords(res.data);
       } catch (err) {
@@ -20,6 +19,9 @@ export function useRecords(refreshTrigger = 0) {
     };
 
     fetchRecords();
+
+    const interval = setInterval(fetchRecords, 5000);
+    return () => clearInterval(interval);
   }, [refreshTrigger]);
 
   return { records, loading, error };

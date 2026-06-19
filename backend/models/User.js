@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, default: '' },
   microsoftId: { type: String, unique: true, sparse: true },
   authProvider: { type: String, enum: ['local', 'microsoft'], default: 'local' },
-  role: { type: String, enum: ['admin', 'user', 'accountant'], default: 'user' },
+  role: { type: String, enum: ['admin', 'department lead', 'accountant'], default: 'department lead' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   isApproved: { type: Boolean, default: false },
   roleSelected: { type: Boolean, default: false }

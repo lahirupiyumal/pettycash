@@ -35,7 +35,7 @@ async (accessToken, refreshToken, profile, done) => {
       name,
       email,
       microsoftId: profile.id,
-      role: 'user',
+      role: 'department lead',
       status: 'pending',
     });
 
