@@ -59,7 +59,7 @@ const upsertMicrosoftUser = exports.upsertMicrosoftUser = async ({ microsoftId, 
       password: '',
       microsoftId,
       authProvider: 'microsoft',
-      role: 'user',
+      role: 'department lead',
       status: 'pending',
       isApproved: false,
     });

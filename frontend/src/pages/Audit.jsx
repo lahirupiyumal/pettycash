@@ -54,7 +54,7 @@ const ACTION_TYPE_COLORS = {
 const ROLE_COLORS = {
   admin: 'bg-blue-50 text-blue-600 border-blue-100',
   accountant: 'bg-purple-50 text-purple-600 border-purple-100',
-  user: 'bg-slate-50 text-slate-600 border-slate-100',
+  'department lead': 'bg-slate-50 text-slate-600 border-slate-100',
 };
 
 const formatDate = (dateString) => {
@@ -336,7 +336,7 @@ export default function Audit() {
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
               <option value="accountant">Accountant</option>
-              <option value="user">User</option>
+              <option value="department lead">Department Lead</option>
             </select>
 
             {activeTab === 'logs' && (

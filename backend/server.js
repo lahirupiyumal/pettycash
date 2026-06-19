@@ -19,8 +19,12 @@ app.use('/api/accountants', require('./routes/accountants'));
 app.use('/api/audit', require('./routes/audit'));
 
 mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log('MongoDB connected');
+    
+    // Run database migration to rename role 'user' -> 'department lead'
+    await require('./utils/migration').runMigration();
+    
     app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
     
     // Start background auto sync scheduler
