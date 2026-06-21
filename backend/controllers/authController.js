@@ -65,7 +65,7 @@ exports.register = async (req, res) => {
 
     // Automatically set role and status for admin, else use requested role or default to department lead
     const isAdmin = email === 'admin@gmail.com';
-    const role = isAdmin ? 'admin' : (requestedRole === 'accountant' ? 'accountant' : 'department lead');
+    const role = isAdmin ? 'admin' : (['accountant', 'department_lead'].includes(requestedRole) ? requestedRole : 'user');
     const status = isAdmin ? 'approved' : 'pending';
 
     const hashed = await bcrypt.hash(password, 10);
@@ -256,7 +256,7 @@ exports.selectRole = async (req, res) => {
     if (!userId || !role) {
       return res.status(400).json({ message: 'User ID and role are required.' });
     }
-    if (!['department lead', 'accountant'].includes(role)) {
+    if (!['user', 'accountant', 'department_lead'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role selection.' });
     }
     const user = await User.findById(userId);

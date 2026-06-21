@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'department lead' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'department_lead' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -139,12 +139,12 @@ export default function Register() {
                   onChange={e => setForm({ ...form, role: e.target.value })}
                   required
                 >
-                  <option value="department lead">Department Lead</option>
+                  <option value="department_lead">Department Lead</option>
                   <option value="accountant">Accountant</option>
                 </select>
                 <p className="mt-1.5 text-[10px] text-slate-400">
-                  {form.role === 'department lead' 
-                    ? 'Department lead account with analytics and dashboard access' 
+                  {form.role === 'department_lead'
+                    ? 'Department Lead account with team management access'
                     : 'Accountant account with extended data management privileges'}
                 </p>
               </div>

@@ -186,24 +186,9 @@ export default function Dashboard() {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  const roleNormalized = user?.role?.toLowerCase()?.replace(/[_-]/g, ' ');
-  const isDepartmentLead = roleNormalized === 'department lead' || roleNormalized === 'user';
-  const isAdmin = roleNormalized === 'admin';
-  const isAccountant = roleNormalized === 'accountant';
-
-  // Role-based route guard inside Dashboard layout
-  const currentPath = location.pathname;
-  if (isAccountant) {
-    const isAllowed = ['/accountant-details', '/profile'].includes(currentPath) || currentPath === '/';
-    if (!isAllowed) {
-      return <Navigate to="/accountant-details" replace />;
-    }
-  } else if (isDepartmentLead) {
-    const isBlocked = ['/admin', '/audit', '/import-excel', '/imported-data', '/accountant-import', '/accountant-data'].includes(currentPath);
-    if (isBlocked) {
-      return <Navigate to="/overview" replace />;
-    }
-  }
+  const isAdmin = user?.role === 'admin';
+  const isAccountant = user?.role === 'accountant';
+  const isDepartmentLead = user?.role === 'department_lead';
 
   const menuItems = useMemo(() => {
     const items = [
@@ -236,8 +221,16 @@ export default function Dashboard() {
     if (!isAccountant) {
       return [];
     }
-    return menuItems.filter(item => item.label === 'Accountant Details');
+    return menuItems.filter(item => [
+      'Accountant Details',
+    ].includes(item.label));
   }, [isAccountant, menuItems]);
+
+  // Department Lead menu items
+  const departmentLeadMenuItems = useMemo(() => {
+    if (!isDepartmentLead) return [];
+    return menuItems.filter(item => item.label === 'Accountant Details');
+  }, [isDepartmentLead, menuItems]);
 
   const mainMenuItems = useMemo(() => {
     if (isDepartmentLead) {
@@ -249,12 +242,14 @@ export default function Dashboard() {
   }, [isDepartmentLead, menuItems]);
 
   const dataManagementItems = useMemo(() => {
-    if (isAdmin) {
-      return menuItems.filter(item => [
-        'Import Excel File', 'Imported Data', 'Accountant Import', 'Accountant Data'
-      ].includes(item.label));
+    if (!isAdmin) {
+      return [];
     }
-    return [];
+
+    return menuItems.filter(item => {
+      const allowed = ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'];
+      return allowed.includes(item.label);
+    });
   }, [isAdmin, menuItems]);
 
   const profileItems = useMemo(() => {
@@ -322,6 +317,36 @@ export default function Dashboard() {
                       to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Department Lead Menu Group */}
+          {departmentLeadMenuItems.length > 0 && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Main Menu
+              </p>
+              <div className="space-y-1">
+                {departmentLeadMenuItems.map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path;
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 ring-1 ring-white/10'
                           : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                         }`}
                     >
@@ -533,30 +558,33 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {!isAdmin && (
-          <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
-            <div className="flex gap-2 min-w-max">
-              {/* Mobile navigation items based on role */}
-              {(isAccountant ? accountantMenuItems.concat(accountantProfileItems) : 
-                mainMenuItems.concat(dataManagementItems).concat(profileItems))
-                .map(({ label, path }) => {
-                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
-                  return (
-                    <Link
-                      key={label}
-                      to={path}
-                      className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-slate-600 border-slate-200'
-                        }`}
-                    >
-                      {label}
-                    </Link>
-                  );
-                })}
-            </div>
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {/* Mobile navigation items based on role */}
+            {(isAdmin
+              ? adminItems.concat(dataManagementItems)
+              : isAccountant
+                ? accountantMenuItems.concat(accountantProfileItems)
+                : isDepartmentLead
+                  ? departmentLeadMenuItems
+                  : mainMenuItems.concat(dataManagementItems).concat(profileItems)
+            ).map(({ label, path }) => {
+              const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
+              return (
+                <Link
+                  key={label}
+                  to={path}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         <main className="flex-1 px-5 py-4 md:px-8 md:py-5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">

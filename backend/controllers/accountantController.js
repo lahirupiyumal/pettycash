@@ -232,7 +232,16 @@ exports.googleDriveSync = async (req, res) => {
 exports.getAccountants = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    const query = {};
+    let targetUserId = req.user.id;
+
+    if (req.user.role !== 'admin') {
+      const adminUser = await User.findOne({ role: 'admin' });
+      if (adminUser) {
+        targetUserId = adminUser._id;
+      }
+    }
+
+    const query = { createdBy: targetUserId };
     if (importFileId) {
       query.importFileId = importFileId;
     }
