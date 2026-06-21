@@ -525,27 +525,21 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const [recordsPage, setRecordsPage] = useState(1);
   const [activeTab, setActiveTab] = useState('performance'); // 'performance' | 'assignment'
 
-  const fetchData = async (showSpinner = false) => {
+  const fetchData = async () => {
     try {
-      if (showSpinner) setLoading(true);
+      setLoading(true);
       setError('');
       const response = await api.get('/accountants');
       setRecords(response.data || []);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to load accountant data.');
     } finally {
-      if (showSpinner) setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData(true);
-
-    const interval = setInterval(() => {
-      fetchData(false);
-    }, 5000);
-
-    return () => clearInterval(interval);
+    fetchData();
   }, [refreshTrigger]);
 
   const normalizedRecords = useMemo(() => records.map((record, index) => {

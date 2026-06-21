@@ -49,7 +49,7 @@ export default function AdminPanel() {
     pending: users.filter(u => u.status === 'pending').length,
     admins: users.filter(u => u.role === 'admin').length,
     accountants: users.filter(u => u.role === 'accountant').length,
-    regularUsers: users.filter(u => u.role === 'department lead').length,
+    regularUsers: users.filter(u => u.role === 'user').length,
   }), [users]);
 
   const handleStatusUpdate = async (userId, newStatus) => {

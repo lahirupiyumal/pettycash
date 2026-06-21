@@ -14,7 +14,7 @@ export default function Login() {
 
   const [pendingRoleSelection, setPendingRoleSelection] = useState(false);
   const [selectRoleUserId, setSelectRoleUserId] = useState(null);
-  const [selectedRole, setSelectedRole] = useState('department lead');
+  const [selectedRole, setSelectedRole] = useState('user');
   const [submittingRole, setSubmittingRole] = useState(false);
 
   // Once token state is committed (by login() or from localStorage on mount),
@@ -152,12 +152,12 @@ export default function Login() {
                       onChange={e => setSelectedRole(e.target.value)}
                       required
                     >
-                      <option value="department lead">Department Lead</option>
+                      <option value="user">User</option>
                       <option value="accountant">Accountant</option>
                     </select>
                     <p className="mt-1.5 text-[10px] text-slate-400">
-                      {selectedRole === 'department lead' 
-                        ? 'Department lead account with analytics and dashboard access' 
+                      {selectedRole === 'user' 
+                        ? 'Standard user account with basic access' 
                         : 'Accountant account with extended data management privileges'}
                     </p>
                   </div>
