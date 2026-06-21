@@ -188,6 +188,7 @@ export default function Dashboard() {
 
   const isAdmin = user?.role === 'admin';
   const isAccountant = user?.role === 'accountant';
+  const isDepartmentLead = user?.role === 'department_lead';
 
   const menuItems = useMemo(() => {
     const items = [
@@ -224,6 +225,12 @@ export default function Dashboard() {
       'Accountant Details',
     ].includes(item.label));
   }, [isAccountant, menuItems]);
+
+  // Department Lead menu items
+  const departmentLeadMenuItems = useMemo(() => {
+    if (!isDepartmentLead) return [];
+    return menuItems.filter(item => item.label === 'Accountant Details');
+  }, [isDepartmentLead, menuItems]);
 
   const mainMenuItems = useMemo(() => {
     if (isAdmin || isAccountant) {
@@ -311,6 +318,36 @@ export default function Dashboard() {
                       to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Department Lead Menu Group */}
+          {departmentLeadMenuItems.length > 0 && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Main Menu
+              </p>
+              <div className="space-y-1">
+                {departmentLeadMenuItems.map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path;
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 ring-1 ring-white/10'
                           : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                         }`}
                     >
@@ -527,10 +564,11 @@ export default function Dashboard() {
             {/* Mobile navigation items based on role */}
             {(isAdmin
               ? adminItems.concat(dataManagementItems)
-              : (isAccountant
+              : isAccountant
                 ? accountantMenuItems.concat(accountantProfileItems)
-                : mainMenuItems.concat(dataManagementItems).concat(profileItems)
-              )
+                : isDepartmentLead
+                  ? departmentLeadMenuItems
+                  : mainMenuItems.concat(dataManagementItems).concat(profileItems)
             ).map(({ label, path }) => {
               const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
               return (

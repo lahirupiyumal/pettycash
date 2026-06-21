@@ -35,6 +35,9 @@ const AdminRoute = ({ children }) => {
     if (user?.role === 'accountant') {
       return <Navigate to="/accountant-details" replace />;
     }
+    if (user?.role === 'department_lead') {
+      return <Navigate to="/accountant-details" replace />;
+    }
     return <Navigate to="/overview" replace />;
   }
   return children;
@@ -46,6 +49,9 @@ function DashboardIndex() {
     return <Navigate to="/admin" replace />;
   }
   if (user?.role === 'accountant') {
+    return <Navigate to="/accountant-details" replace />;
+  }
+  if (user?.role === 'department_lead') {
     return <Navigate to="/accountant-details" replace />;
   }
   return <Navigate to="/overview" replace />;
