@@ -236,11 +236,17 @@ export default function Dashboard() {
   }, [isAdmin, isAccountant, menuItems]);
 
   const dataManagementItems = useMemo(() => {
-    if (isAdmin || isAccountant) {
+    if (isAccountant) {
       return [];
     }
 
-    return menuItems.filter(item => ['Imported Data', 'Import Excel File'].includes(item.label));
+    return menuItems.filter(item => {
+      const allowed = ['Imported Data', 'Import Excel File'];
+      if (isAdmin) {
+        allowed.push('Accountant Data', 'Accountant Import');
+      }
+      return allowed.includes(item.label);
+    });
   }, [isAdmin, isAccountant, menuItems]);
 
   const profileItems = useMemo(() => {
@@ -521,30 +527,32 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {!isAdmin && (
-          <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
-            <div className="flex gap-2 min-w-max">
-              {/* Mobile navigation items based on role */}
-              {(isAccountant ? accountantMenuItems.concat(accountantProfileItems) : 
-                mainMenuItems.concat(dataManagementItems).concat(profileItems))
-                .map(({ label, path }) => {
-                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
-                  return (
-                    <Link
-                      key={label}
-                      to={path}
-                      className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-slate-600 border-slate-200'
-                        }`}
-                    >
-                      {label}
-                    </Link>
-                  );
-                })}
-            </div>
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {/* Mobile navigation items based on role */}
+            {(isAdmin
+              ? adminItems.concat(dataManagementItems)
+              : (isAccountant
+                ? accountantMenuItems.concat(accountantProfileItems)
+                : mainMenuItems.concat(dataManagementItems).concat(profileItems)
+              )
+            ).map(({ label, path }) => {
+              const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
+              return (
+                <Link
+                  key={label}
+                  to={path}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         <main className="flex-1 px-5 py-4 md:px-8 md:py-5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
