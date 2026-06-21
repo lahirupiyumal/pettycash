@@ -233,12 +233,13 @@ export default function Dashboard() {
   }, [isDepartmentLead, menuItems]);
 
   const mainMenuItems = useMemo(() => {
-    if (isAdmin || isAccountant) {
-      return [];
+    if (isDepartmentLead) {
+      return menuItems.filter(item => [
+        'OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast', 'Accountant Details'
+      ].includes(item.label));
     }
-
-    return menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label));
-  }, [isAdmin, isAccountant, menuItems]);
+    return [];
+  }, [isDepartmentLead, menuItems]);
 
   const dataManagementItems = useMemo(() => {
     if (!isAdmin) {
@@ -252,12 +253,11 @@ export default function Dashboard() {
   }, [isAdmin, menuItems]);
 
   const profileItems = useMemo(() => {
-    if (isAdmin || isAccountant) {
-      return [];
+    if (isDepartmentLead || isAdmin) {
+      return menuItems.filter(item => item.label === 'User Profile');
     }
-
-    return menuItems.filter(item => item.label === 'User Profile');
-  }, [isAdmin, isAccountant, menuItems]);
+    return [];
+  }, [isDepartmentLead, isAdmin, menuItems]);
 
   // Accountant profile section (separate from regular users)
   const accountantProfileItems = useMemo(() => {
@@ -274,9 +274,8 @@ export default function Dashboard() {
         { label: 'AUDIT', icon: ClipboardList, path: '/audit' },
       ];
     }
-
-    return menuItems.filter(item => item.label === 'ADMIN PANEL' || item.label === 'AUDIT');
-  }, [isAdmin, menuItems]);
+    return [];
+  }, [isAdmin]);
 
   const currentMenuItem = useMemo(() => {
     return menuItems.find(item =>
@@ -393,6 +392,36 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Admin Section */}
+          {adminItems.length > 0 && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Administration
+              </p>
+              <div className="space-y-1">
+                {adminItems.map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Data Management Group */}
           {dataManagementItems.length > 0 && (
             <div>
@@ -471,36 +500,6 @@ export default function Dashboard() {
                       to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
                           ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-900/40 ring-1 ring-white/10'
-                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                        }`}
-                    >
-                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
-                      <span className="flex-1 text-left tracking-wide">{label}</span>
-                      {isActive && (
-                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Admin Section */}
-          {adminItems.length > 0 && (
-            <div>
-              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
-                Administration
-              </p>
-              <div className="space-y-1">
-                {adminItems.map(({ label, icon: Icon, path }) => {
-                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
-                  return (
-                    <Link
-                      key={label}
-                      to={path}
-                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
-                          ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-900/50 ring-1 ring-white/10'
                           : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                         }`}
                     >

@@ -63,7 +63,7 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, role: requestedRole } = req.body;
 
-    // Automatically set role and status for admin, else use requested role or default to user
+    // Automatically set role and status for admin, else use requested role or default to department lead
     const isAdmin = email === 'admin@gmail.com';
     const role = isAdmin ? 'admin' : (['accountant', 'department_lead'].includes(requestedRole) ? requestedRole : 'user');
     const status = isAdmin ? 'approved' : 'pending';
@@ -171,7 +171,7 @@ exports.microsoftCallback = async (req, res) => {
         password: '',
         microsoftId,
         authProvider: 'microsoft',
-        role: 'user',
+        role: 'department lead',
         status: 'approved',
       });
     } else {
