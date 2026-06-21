@@ -27,6 +27,7 @@ const processImportRecords = async (records, fileName, userId) => {
   if (isGoogleDriveSync) {
     let importFile = await ImportedFile.findOne({
       fileName: fileName,
+      createdBy: userId,
       type: 'pettyCash'
     });
 
@@ -39,19 +40,28 @@ const processImportRecords = async (records, fileName, userId) => {
       });
     }
 
-    // Clear previously synced records to mirror deletions in the Google Sheet
-    await PettyCashRecord.deleteMany({ sourceFileName: fileName });
-
-    const recordsToInsert = uniqueIncoming.map(record => ({
-      ...record,
-      createdBy: userId,
-      sourceFileName: fileName,
-      importFileId: importFile._id
+    const ops = uniqueIncoming.map(record => ({
+      updateOne: {
+        filter: {
+          createdBy: userId,
+          region: record.region,
+          pcfRef: record.pcfRef,
+          year: record.year,
+          month: record.month
+        },
+        update: {
+          $set: {
+            ...record,
+            createdBy: userId,
+            sourceFileName: fileName,
+            importFileId: importFile._id
+          }
+        },
+        upsert: true
+      }
     }));
 
-    if (recordsToInsert.length > 0) {
-      await PettyCashRecord.insertMany(recordsToInsert, { ordered: false });
-    }
+    await PettyCashRecord.bulkWrite(ops);
 
     importFile = await ImportedFile.findByIdAndUpdate(
       importFile._id,
@@ -375,11 +385,12 @@ exports.deleteRecords = async (req, res) => {
 
       if (importFileId === 'legacy') {
         result = await PettyCashRecord.deleteMany({
+          createdBy: req.user.id,
           $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
         });
       } else {
-        result = await PettyCashRecord.deleteMany({ importFileId });
-        await ImportedFile.deleteOne({ _id: importFileId });
+        result = await PettyCashRecord.deleteMany({ createdBy: req.user.id, importFileId });
+        await ImportedFile.deleteOne({ _id: importFileId, createdBy: req.user.id });
       }
 
       return res.json({
@@ -388,9 +399,10 @@ exports.deleteRecords = async (req, res) => {
       });
     }
 
-    const result = await PettyCashRecord.deleteMany({});
+    const result = await PettyCashRecord.deleteMany({ createdBy: req.user.id });
     // Fix: Only delete pettyCash files, don't touch accountant files
     await ImportedFile.deleteMany({ 
+      createdBy: req.user.id, 
       $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }] 
     });
 

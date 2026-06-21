@@ -25,6 +25,7 @@ const processImportAccountants = async (records, fileName, userId) => {
   if (isGoogleDriveSync) {
     let importFile = await ImportedFile.findOne({
       fileName: fileName,
+      createdBy: userId,
       type: 'accountant'
     });
 
@@ -37,18 +38,27 @@ const processImportAccountants = async (records, fileName, userId) => {
       });
     }
 
-    // Clear previously synced records to mirror deletions in the Google Sheet
-    await Accountant.deleteMany({ importFileId: importFile._id });
-
-    const recordsToInsert = uniqueIncoming.map(record => ({
-      ...record,
-      createdBy: userId,
-      importFileId: importFile._id
+    const ops = uniqueIncoming.map(record => ({
+      updateOne: {
+        filter: {
+          createdBy: userId,
+          region: record.region,
+          pcfRef: record.pcfRef,
+          year: record.year,
+          month: record.month
+        },
+        update: {
+          $set: {
+            ...record,
+            createdBy: userId,
+            importFileId: importFile._id
+          }
+        },
+        upsert: true
+      }
     }));
 
-    if (recordsToInsert.length > 0) {
-      await Accountant.insertMany(recordsToInsert, { ordered: false });
-    }
+    await Accountant.bulkWrite(ops);
 
     importFile = await ImportedFile.findByIdAndUpdate(
       importFile._id,
@@ -255,7 +265,7 @@ exports.getAccountants = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
-    const files = await ImportedFile.find({ type: 'accountant' }).sort({ createdAt: -1 });
+    const files = await ImportedFile.find({ createdBy: req.user.id, type: 'accountant' }).sort({ createdAt: -1 });
     res.json(files);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -266,13 +276,13 @@ exports.deleteAccountants = async (req, res) => {
   try {
     const { importFileId } = req.query;
     if (importFileId) {
-      await Accountant.deleteMany({ importFileId });
-      await ImportedFile.deleteOne({ _id: importFileId });
+      await Accountant.deleteMany({ createdBy: req.user.id, importFileId });
+      await ImportedFile.deleteOne({ _id: importFileId, createdBy: req.user.id });
       return res.json({ message: 'Selected imported file data deleted successfully.' });
     }
 
-    const fileIds = await Accountant.distinct('importFileId');
-    await Accountant.deleteMany({});
+    const fileIds = await Accountant.distinct('importFileId', { createdBy: req.user.id });
+    await Accountant.deleteMany({ createdBy: req.user.id });
     await ImportedFile.deleteMany({ _id: { $in: fileIds } });
 
     res.json({ message: 'All accountant data deleted successfully.' });
