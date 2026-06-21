@@ -276,7 +276,16 @@ exports.googleDriveSync = async (req, res) => {
 exports.getRecords = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    let matchQuery = { createdBy: new Types.ObjectId(req.user.id) };
+    let targetUserId = req.user.id;
+
+    if (req.user.role !== 'admin') {
+      const adminUser = await User.findOne({ role: 'admin' });
+      if (adminUser) {
+        targetUserId = adminUser._id;
+      }
+    }
+
+    let matchQuery = { createdBy: new Types.ObjectId(targetUserId) };
 
     if (importFileId === 'legacy') {
       matchQuery.$or = [{ importFileId: { $exists: false } }, { importFileId: null }];

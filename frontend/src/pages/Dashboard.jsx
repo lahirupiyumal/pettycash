@@ -222,8 +222,6 @@ export default function Dashboard() {
     }
     return menuItems.filter(item => [
       'Accountant Details',
-      'Accountant Data',
-      'Accountant Import'
     ].includes(item.label));
   }, [isAccountant, menuItems]);
 
@@ -236,18 +234,15 @@ export default function Dashboard() {
   }, [isAdmin, isAccountant, menuItems]);
 
   const dataManagementItems = useMemo(() => {
-    if (isAccountant) {
+    if (!isAdmin) {
       return [];
     }
 
     return menuItems.filter(item => {
-      const allowed = ['Imported Data', 'Import Excel File'];
-      if (isAdmin) {
-        allowed.push('Accountant Data', 'Accountant Import');
-      }
+      const allowed = ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'];
       return allowed.includes(item.label);
     });
-  }, [isAdmin, isAccountant, menuItems]);
+  }, [isAdmin, menuItems]);
 
   const profileItems = useMemo(() => {
     if (isAdmin || isAccountant) {
