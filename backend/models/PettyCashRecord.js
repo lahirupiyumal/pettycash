@@ -32,6 +32,8 @@ const pettyCashRecordSchema = new mongoose.Schema({
   invoiceAmount: { type: Number },
   utilization: { type: Number },
   variance: { type: Number },
+  total: { type: Number },
+  dateOfReconciliation: { type: String },
   
   varianceStatus: { type: String },
   checkedStatus: { type: String },

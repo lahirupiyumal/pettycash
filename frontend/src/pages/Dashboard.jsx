@@ -16,6 +16,7 @@ import CostCenters from '../components/CostCenters';
 import AccountantImport from './AccountantImport';
 import AccountantImportedData from './AccountantImportedData';
 import AccountantProgressAnalytics from './AccountantProgressAnalytics';
+import AccountantDashboard from './AccountantDashboard';
 import Audit from './Audit';
 import {
   BarChart3,
@@ -153,6 +154,11 @@ export function AccountantImportRoute() {
 
 export function AccountantDetailsRoute() {
   const { refreshTrigger } = useOutletContext();
+  const { user } = useAuth();
+  
+  if (user?.role === 'accountant') {
+    return <AccountantDashboard refreshTrigger={refreshTrigger} />;
+  }
   return <AccountantProgressAnalytics refreshTrigger={refreshTrigger} />;
 }
 

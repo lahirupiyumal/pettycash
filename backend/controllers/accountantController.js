@@ -140,7 +140,7 @@ const processImportAccountants = async (records, fileName, userId) => {
   }
 
   importFile = await ImportedFile.findByIdAndUpdate(
-    importFile._id, 
+    importFile._id,
     { $inc: { recordCount: insertedCount } },
     { new: true }
   );
@@ -169,7 +169,7 @@ exports.importAccountants = async (req, res) => {
 };
 
 const syncAccountantsForUser = async (userId) => {
-  const sheetId = process.env.GOOGLE_DRIVE_ACCOUNTANT_SHEET_ID || '1pHw_sex0UbmDyRxlm7ijKWYrfS5tBmrtaz5DUqVb2Ss';
+  const sheetId = process.env.GOOGLE_DRIVE_ACCOUNTANT_SHEET_ID || '1tKboF2XoTGH8Zrx55CbSYRtpyu0aMYd8';
   const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
 
   const response = await fetch(url);
@@ -254,6 +254,18 @@ exports.getAccountants = async (req, res) => {
     const query = { createdBy: targetUserId };
     if (importFileId) {
       query.importFileId = importFileId;
+    }
+
+    // Accountant filtering: only show records matching their service number
+    if (req.user.role === 'accountant' && req.user.serviceNumber) {
+      const svcNum = parseInt(req.user.serviceNumber, 10);
+      const matchNumbers = [req.user.serviceNumber, String(req.user.serviceNumber)];
+      if (!isNaN(svcNum)) {
+        matchNumbers.push(svcNum);
+        matchNumbers.push(String(svcNum));
+        matchNumbers.push(String(svcNum).padStart(6, '0'));
+      }
+      query.number = { $in: matchNumbers };
     }
 
     const accountants = await Accountant.find(query).sort({ createdAt: -1 });

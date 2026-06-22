@@ -149,9 +149,9 @@ const processImportRecords = async (records, fileName, userId) => {
   }
 
   const totalSkipped = skipped + dbSkipped;
-  
+
   importFile = await ImportedFile.findByIdAndUpdate(
-    importFile._id, 
+    importFile._id,
     { $inc: { recordCount: insertedCount } },
     { new: true }
   );
@@ -207,10 +207,95 @@ const syncPettyCashForUser = async (userId) => {
     return isNaN(parsed) ? null : parsed;
   };
 
+  const parseDateOfReconciliation = (val) => {
+    if (!val) {
+      const d = new Date();
+      return {
+        dateStr: '',
+        year: d.getFullYear(),
+        month: d.toLocaleString('en-US', { month: 'long' })
+      };
+    }
+
+    if (val instanceof Date) {
+      return {
+        dateStr: val.toISOString().split('T')[0],
+        year: val.getFullYear(),
+        month: val.toLocaleString('en-US', { month: 'long' })
+      };
+    }
+
+    const str = String(val).trim();
+    
+    // Check if Excel serial number
+    const numVal = Number(str);
+    if (!isNaN(numVal) && numVal > 30000 && numVal < 60000) {
+      const dateObj = new Date((numVal - 25569) * 86400 * 1000);
+      if (!isNaN(dateObj.getTime())) {
+        return {
+          dateStr: dateObj.toISOString().split('T')[0],
+          year: dateObj.getFullYear(),
+          month: dateObj.toLocaleString('en-US', { month: 'long' })
+        };
+      }
+    }
+
+    let parts = str.split(/[-/.]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        const year = parseInt(parts[0], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(year, monthIdx, day);
+        if (!isNaN(d.getTime())) {
+          return {
+            dateStr: str,
+            year,
+            month: d.toLocaleString('en-US', { month: 'long' })
+          };
+        }
+      } else {
+        const day = parseInt(parts[0], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const d = new Date(year, monthIdx, day);
+        if (!isNaN(d.getTime())) {
+          return {
+            dateStr: str,
+            year,
+            month: d.toLocaleString('en-US', { month: 'long' })
+          };
+        }
+      }
+    }
+
+    const parsedDate = new Date(str);
+    if (!isNaN(parsedDate.getTime())) {
+      return {
+        dateStr: str,
+        year: parsedDate.getFullYear(),
+        month: parsedDate.toLocaleString('en-US', { month: 'long' })
+      };
+    }
+
+    const d = new Date();
+    return {
+      dateStr: str,
+      year: d.getFullYear(),
+      month: d.toLocaleString('en-US', { month: 'long' })
+    };
+  };
+
   const records = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length === 0 || !row[0]) continue;
+
+    const rawReconciliationDate = row[13];
+    const { dateStr, year, month } = parseDateOfReconciliation(rawReconciliationDate);
+    const floatVal = parseNum(row[14]);
+    const expensesVal = parseNum(row[16]);
+    const varianceVal = parseNum(row[18]);
 
     records.push({
       region: row[0],
@@ -218,29 +303,31 @@ const syncPettyCashForUser = async (userId) => {
       costCenterName: row[2],
       number: parseNum(row[3]),
       payingOfficer: {
-        name: row[4],
-        email: row[5],
-        empNumber: parseNum(row[6])
-      },
-      supervisingOfficer: {
-        name: row[7],
-        email: row[8],
-        empNumber: parseNum(row[9])
-      },
-      reportingAccountant: {
-        name: row[10],
-        email: row[11],
+        name: row[11],
+        email: row[4],
         empNumber: parseNum(row[12])
       },
-      year: parseNum(row[13]),
-      month: row[14],
-      floatAmount: parseNum(row[15]),
-      cashInHand: parseNum(row[16]),
-      invoiceAmount: parseNum(row[17]),
-      utilization: parseNum(row[18]),
-      variance: parseNum(row[19]),
-      varianceStatus: row[20],
-      checkedStatus: row[21]
+      supervisingOfficer: {
+        name: row[5],
+        email: row[6],
+        empNumber: parseNum(row[7])
+      },
+      reportingAccountant: {
+        name: row[8],
+        email: row[9],
+        empNumber: parseNum(row[10])
+      },
+      year,
+      month,
+      floatAmount: floatVal,
+      cashInHand: parseNum(row[15]),
+      invoiceAmount: expensesVal,
+      total: parseNum(row[17]),
+      variance: varianceVal,
+      utilization: floatVal ? (expensesVal / floatVal) * 100 : 0,
+      varianceStatus: varianceVal === 0 ? 'Balanced' : 'Unbalanced',
+      checkedStatus: dateStr || String(rawReconciliationDate || ''),
+      dateOfReconciliation: dateStr || String(rawReconciliationDate || '')
     });
   }
 
@@ -278,6 +365,7 @@ exports.getRecords = async (req, res) => {
     const { importFileId } = req.query;
     let targetUserId = req.user.id;
 
+    // All non-admin roles (including accountant) should read from admin's imported data
     if (req.user.role !== 'admin') {
       const adminUser = await User.findOne({ role: 'admin' });
       if (adminUser) {
@@ -287,10 +375,37 @@ exports.getRecords = async (req, res) => {
 
     let matchQuery = { createdBy: new Types.ObjectId(targetUserId) };
 
+    // Collect $or conditions; we may need more than one
+    const orConditions = [];
+
     if (importFileId === 'legacy') {
-      matchQuery.$or = [{ importFileId: { $exists: false } }, { importFileId: null }];
+      orConditions.push([{ importFileId: { $exists: false } }, { importFileId: null }]);
     } else if (importFileId) {
       matchQuery.importFileId = new Types.ObjectId(importFileId);
+    }
+
+    // Accountant filtering: only show records assigned to their service number
+    if (req.user.role === 'accountant' && req.user.serviceNumber) {
+      const trimmedServiceNumber = req.user.serviceNumber.trim();
+      const svcNum = parseInt(trimmedServiceNumber, 10);
+      const empNumberVariants = [
+        { 'reportingAccountant.empNumber': trimmedServiceNumber },
+        { 'reportingAccountant.empNumber': String(trimmedServiceNumber) }
+      ];
+      if (!isNaN(svcNum)) {
+        empNumberVariants.push({ 'reportingAccountant.empNumber': svcNum });
+        empNumberVariants.push({ 'reportingAccountant.empNumber': String(svcNum) });
+        empNumberVariants.push({ 'reportingAccountant.empNumber': String(svcNum).padStart(6, '0') });
+      }
+      orConditions.push(empNumberVariants);
+      console.log('Accountant filtering - serviceNumber:', trimmedServiceNumber, 'svcNum:', svcNum, 'variants:', empNumberVariants);
+    }
+
+    // Merge all $or conditions safely using $and
+    if (orConditions.length === 1) {
+      matchQuery.$or = orConditions[0];
+    } else if (orConditions.length > 1) {
+      matchQuery.$and = orConditions.map(cond => ({ $or: cond }));
     }
 
     const records = await PettyCashRecord.aggregate([
@@ -298,12 +413,12 @@ exports.getRecords = async (req, res) => {
       {
         $lookup: {
           from: 'accountants',
-          let: { 
-            r_region: { $toLower: { $trim: { input: '$region' } } }, 
-            r_pcf: { $toLower: { $trim: { input: '$pcfRef' } } }, 
-            r_year: '$year', 
-            r_month: { $toLower: { $trim: { input: '$month' } } }, 
-            r_user: '$createdBy' 
+          let: {
+            r_region: { $toLower: { $trim: { input: '$region' } } },
+            r_pcf: { $toLower: { $trim: { input: '$pcfRef' } } },
+            r_year: '$year',
+            r_month: { $toLower: { $trim: { input: '$month' } } },
+            r_user: '$createdBy'
           },
           pipeline: [
             {
@@ -346,9 +461,9 @@ exports.getRecords = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
-    const files = await ImportedFile.find({ 
-      createdBy: req.user.id, 
-      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }] 
+    const files = await ImportedFile.find({
+      createdBy: req.user.id,
+      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
     }).sort({ createdAt: -1 }).lean();
 
     const legacyCount = await PettyCashRecord.countDocuments({
@@ -401,9 +516,9 @@ exports.deleteRecords = async (req, res) => {
 
     const result = await PettyCashRecord.deleteMany({ createdBy: req.user.id });
     // Fix: Only delete pettyCash files, don't touch accountant files
-    await ImportedFile.deleteMany({ 
-      createdBy: req.user.id, 
-      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }] 
+    await ImportedFile.deleteMany({
+      createdBy: req.user.id,
+      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
     });
 
     res.json({ message: 'Imported data deleted successfully.', deletedCount: result.deletedCount || 0 });

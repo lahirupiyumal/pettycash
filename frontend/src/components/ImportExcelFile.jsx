@@ -80,45 +80,128 @@ export default function ImportExcelFile({ onImportSuccess }) {
           return isNaN(parsed) ? null : parsed;
         };
 
+        const parseDateOfReconciliation = (val) => {
+          if (!val) {
+            const d = new Date();
+            return {
+              dateStr: '',
+              year: d.getFullYear(),
+              month: d.toLocaleString('en-US', { month: 'long' })
+            };
+          }
+
+          if (val instanceof Date) {
+            return {
+              dateStr: val.toISOString().split('T')[0],
+              year: val.getFullYear(),
+              month: val.toLocaleString('en-US', { month: 'long' })
+            };
+          }
+
+          const str = String(val).trim();
+          
+          // Check if Excel serial number
+          const numVal = Number(str);
+          if (!isNaN(numVal) && numVal > 30000 && numVal < 60000) {
+            const dateObj = new Date((numVal - 25569) * 86400 * 1000);
+            if (!isNaN(dateObj.getTime())) {
+              return {
+                dateStr: dateObj.toISOString().split('T')[0],
+                year: dateObj.getFullYear(),
+                month: dateObj.toLocaleString('en-US', { month: 'long' })
+              };
+            }
+          }
+
+          let parts = str.split(/[-/.]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              const year = parseInt(parts[0], 10);
+              const monthIdx = parseInt(parts[1], 10) - 1;
+              const day = parseInt(parts[2], 10);
+              const d = new Date(year, monthIdx, day);
+              if (!isNaN(d.getTime())) {
+                return {
+                  dateStr: str,
+                  year,
+                  month: d.toLocaleString('en-US', { month: 'long' })
+                };
+              }
+            } else {
+              const day = parseInt(parts[0], 10);
+              const monthIdx = parseInt(parts[1], 10) - 1;
+              const year = parseInt(parts[2], 10);
+              const d = new Date(year, monthIdx, day);
+              if (!isNaN(d.getTime())) {
+                return {
+                  dateStr: str,
+                  year,
+                  month: d.toLocaleString('en-US', { month: 'long' })
+                };
+              }
+            }
+          }
+
+          const parsedDate = new Date(str);
+          if (!isNaN(parsedDate.getTime())) {
+            return {
+              dateStr: str,
+              year: parsedDate.getFullYear(),
+              month: parsedDate.toLocaleString('en-US', { month: 'long' })
+            };
+          }
+
+          const d = new Date();
+          return {
+            dateStr: str,
+            year: d.getFullYear(),
+            month: d.toLocaleString('en-US', { month: 'long' })
+          };
+        };
+
         const records = [];
         // Skip header row
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length === 0 || !row[0]) continue; // Skip empty rows
 
+          const rawReconciliationDate = row[13];
+          const { dateStr, year, month } = parseDateOfReconciliation(rawReconciliationDate);
+          const floatVal = parseNum(row[14]);
+          const expensesVal = parseNum(row[16]);
+          const varianceVal = parseNum(row[18]);
+
           records.push({
             region: row[0],
             pcfRef: row[1],
             costCenterName: row[2],
             number: parseNum(row[3]),
-            
             payingOfficer: {
-              name: row[4],
-              email: row[5],
-              empNumber: parseNum(row[6])
-            },
-            
-            supervisingOfficer: {
-              name: row[7],
-              email: row[8],
-              empNumber: parseNum(row[9])
-            },
-            
-            reportingAccountant: {
-              name: row[10],
-              email: row[11],
+              name: row[11],
+              email: row[4],
               empNumber: parseNum(row[12])
             },
-            
-            year: parseNum(row[13]),
-            month: row[14],
-            floatAmount: parseNum(row[15]),
-            cashInHand: parseNum(row[16]),
-            invoiceAmount: parseNum(row[17]),
-            utilization: parseNum(row[18]),
-            variance: parseNum(row[19]),
-            varianceStatus: row[20],
-            checkedStatus: row[21]
+            supervisingOfficer: {
+              name: row[5],
+              email: row[6],
+              empNumber: parseNum(row[7])
+            },
+            reportingAccountant: {
+              name: row[8],
+              email: row[9],
+              empNumber: parseNum(row[10])
+            },
+            year,
+            month,
+            floatAmount: floatVal,
+            cashInHand: parseNum(row[15]),
+            invoiceAmount: expensesVal,
+            total: parseNum(row[17]),
+            variance: varianceVal,
+            utilization: floatVal ? (expensesVal / floatVal) * 100 : 0,
+            varianceStatus: varianceVal === 0 ? 'Balanced' : 'Unbalanced',
+            checkedStatus: dateStr || String(rawReconciliationDate || ''),
+            dateOfReconciliation: dateStr || String(rawReconciliationDate || '')
           });
         }
 
