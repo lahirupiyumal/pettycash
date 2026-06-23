@@ -37,8 +37,8 @@ import {
 } from 'recharts';
 
 const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
 function monthIndex(m) {
@@ -124,20 +124,20 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
 
   // Derive filter lists from ALL raw records to keep choices complete
   const regions = useMemo(() => [...new Set(records.map(r => r.region).filter(Boolean))].sort(), [records]);
-  const years   = useMemo(() => [...new Set(records.map(r => r.year).filter(Boolean))].sort((a, b) => b - a), [records]);
-  const months  = useMemo(() => [...new Set(records.map(r => r.month).filter(Boolean))].sort((a, b) => monthIndex(a) - monthIndex(b)), [records]);
+  const years = useMemo(() => [...new Set(records.map(r => r.year).filter(Boolean))].sort((a, b) => b - a), [records]);
+  const months = useMemo(() => [...new Set(records.map(r => r.month).filter(Boolean))].sort((a, b) => monthIndex(a) - monthIndex(b)), [records]);
 
   // Extract unique accountants
   const uniqueAccountants = useMemo(() => {
     const map = new Map();
     records.forEach(r => {
-      const empNum = r.reportingAccountant?.empNumber || r.number;
-      if (!empNum) return;
+      const email = r.reportingAccountant?.email;
+      if (!email || !email.includes('@')) return;
+      const key = email.trim().toLowerCase();
+      const empNum = r.reportingAccountant?.empNumber || '—';
       const name = r.reportingAccountant?.name || 'Unknown Accountant';
-      const email = r.reportingAccountant?.email || '—';
-      const key = String(empNum).trim();
       if (!map.has(key)) {
-        map.set(key, { empNumber: key, name, email, region: r.region });
+        map.set(key, { empNumber: empNum, name, email: key, region: r.region });
       }
     });
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
@@ -147,12 +147,12 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const filtered = useMemo(() => {
     let data = records;
     if (filterRegion) data = data.filter(r => r.region === filterRegion);
-    if (filterYear)   data = data.filter(r => String(r.year) === filterYear);
-    if (filterMonth)  data = data.filter(r => r.month === filterMonth);
+    if (filterYear) data = data.filter(r => String(r.year) === filterYear);
+    if (filterMonth) data = data.filter(r => r.month === filterMonth);
     if (filterAccountant) {
       data = data.filter(r => {
-        const empNum = r.reportingAccountant?.empNumber || r.number;
-        return empNum && String(empNum).trim() === String(filterAccountant).trim();
+        const email = r.reportingAccountant?.email;
+        return email && email.trim().toLowerCase() === filterAccountant.trim().toLowerCase();
       });
     }
     if (search.trim()) {
@@ -172,7 +172,12 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
     const pending = assigned - completed;
     const pct = assigned ? Math.round((completed / assigned) * 100) : 0;
 
-    const activeAccs = new Set(filtered.map(r => r.reportingAccountant?.empNumber || r.number).filter(Boolean)).size;
+    const activeAccs = new Set(
+      filtered.map(r => {
+        const email = r.reportingAccountant?.email;
+        return email && email.includes('@') ? email.trim().toLowerCase() : null;
+      }).filter(Boolean)
+    ).size;
     const activeRegs = new Set(filtered.map(r => r.region).filter(Boolean)).size;
 
     return {
@@ -199,14 +204,14 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
       }
       else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
       if (av < bv) return sortConfig.dir === 'asc' ? -1 : 1;
-      if (av > bv) return sortConfig.dir === 'asc' ?  1 : -1;
+      if (av > bv) return sortConfig.dir === 'asc' ? 1 : -1;
       return 0;
     });
     return copy;
   }, [filtered, sortConfig]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paginated  = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginated = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Time-series and Region grouping for charts
   const monthlyData = useMemo(() => {
@@ -257,15 +262,16 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
     // Group by Accountant
     const accMap = {};
     filtered.forEach(r => {
-      const empNum = r.reportingAccountant?.empNumber || r.number;
-      if (!empNum) return;
-      const name = r.reportingAccountant?.name || `Accountant ${empNum}`;
-      if (!accMap[empNum]) {
-        accMap[empNum] = { name, assigned: 0, completed: 0 };
+      const email = r.reportingAccountant?.email;
+      if (!email || !email.includes('@')) return;
+      const key = email.trim().toLowerCase();
+      const name = r.reportingAccountant?.name || `Accountant ${r.reportingAccountant?.empNumber || ''}`;
+      if (!accMap[key]) {
+        accMap[key] = { name, assigned: 0, completed: 0 };
       }
-      accMap[empNum].assigned += 1;
+      accMap[key].assigned += 1;
       if (isReconciled(r.checkedStatus)) {
-        accMap[empNum].completed += 1;
+        accMap[key].completed += 1;
       }
     });
 
@@ -312,7 +318,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
     let growthPeriod = '—';
     let maxGrowth = -Infinity;
     for (let i = 1; i < monthlyData.length; i++) {
-      const prev = monthlyData[i-1];
+      const prev = monthlyData[i - 1];
       const curr = monthlyData[i];
       const diff = curr['Completion Rate'] - prev['Completion Rate'];
       if (diff > maxGrowth) {
@@ -335,8 +341,8 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
   const selectedAccountantDetails = useMemo(() => {
     if (!selectedAccountantKey) return null;
     const accRecords = records.filter(r => {
-      const empNum = r.reportingAccountant?.empNumber || r.number;
-      return empNum && String(empNum).trim() === String(selectedAccountantKey).trim();
+      const email = r.reportingAccountant?.email;
+      return email && email.trim().toLowerCase() === selectedAccountantKey.trim().toLowerCase();
     });
 
     if (accRecords.length === 0) return null;
@@ -442,11 +448,10 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-200 ${activeTab === tab.id
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                  }`}
               >
                 {tab.label}
               </button>
@@ -501,7 +506,7 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
             <select value={filterAccountant} onChange={onFilter(setFilterAccountant)}
               className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition cursor-pointer">
               <option value="">All Accountants</option>
-              {uniqueAccountants.map(a => <option key={a.empNumber} value={a.empNumber}>{a.name}</option>)}
+              {uniqueAccountants.map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
             </select>
           </div>
 
@@ -766,8 +771,8 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                     <AreaChart data={monthlyData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -889,13 +894,13 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                 <thead className="bg-slate-50/80">
                   <tr>
                     {[
-                      { key: 'region',         label: 'Region' },
-                      { key: 'pcfRef',         label: 'PCF Ref' },
+                      { key: 'region', label: 'Region' },
+                      { key: 'pcfRef', label: 'PCF Ref' },
                       { key: 'costCenterName', label: 'Cost Center Name' },
                       { key: 'reportingAccountantName', label: 'Reporting Accountant' },
-                      { key: 'year',           label: 'Year' },
-                      { key: 'month',          label: 'Month' },
-                      { key: 'checkedStatus',  label: 'Status' },
+                      { key: 'year', label: 'Year' },
+                      { key: 'month', label: 'Month' },
+                      { key: 'checkedStatus', label: 'Status' },
                     ].map(({ key, label }) => (
                       <th key={key} onClick={() => handleSort(key)}
                         className="px-5 py-3 border-b border-slate-100 cursor-pointer select-none">
@@ -909,7 +914,8 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginated.map((r, i) => {
-                    const empNum = r.reportingAccountant?.empNumber || r.number;
+                    const email = r.reportingAccountant?.email;
+                    const accountantKey = email && email.includes('@') ? email.trim().toLowerCase() : null;
                     return (
                       <tr key={r._id || i} className="hover:bg-indigo-50/40 transition-colors duration-100">
                         <td className="px-5 py-3.5">
@@ -920,12 +926,12 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                         <td className="px-5 py-3.5 font-bold text-slate-900">{r.pcfRef || '—'}</td>
                         <td className="px-5 py-3.5 text-slate-600 max-w-[260px] truncate">{r.costCenterName || '—'}</td>
                         <td className="px-5 py-3.5">
-                          {empNum ? (
+                          {accountantKey ? (
                             <button
-                              onClick={() => setSelectedAccountantKey(empNum)}
+                              onClick={() => setSelectedAccountantKey(accountantKey)}
                               className="text-left font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 group/btn"
                             >
-                              <span>{r.reportingAccountant?.name || `Accountant ${empNum}`}</span>
+                              <span>{r.reportingAccountant?.name || `Accountant ${accountantKey}`}</span>
                               <ArrowRight className="h-3 w-3 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
                             </button>
                           ) : (
@@ -974,17 +980,16 @@ export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
                   let page;
-                  if (totalPages <= 5)              page = idx + 1;
-                  else if (currentPage <= 3)        page = idx + 1;
+                  if (totalPages <= 5) page = idx + 1;
+                  else if (currentPage <= 3) page = idx + 1;
                   else if (currentPage >= totalPages - 2) page = totalPages - 4 + idx;
-                  else                              page = currentPage - 2 + idx;
+                  else page = currentPage - 2 + idx;
                   return (
                     <button key={page} onClick={() => setCurrentPage(page)}
-                      className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
-                        currentPage === page
-                          ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm'
-                          : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}>
+                      className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${currentPage === page
+                        ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm'
+                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}>
                       {page}
                     </button>
                   );
