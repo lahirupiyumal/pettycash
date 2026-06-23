@@ -250,7 +250,7 @@ export default function MonthlySummary({ records = [] }) {
                 <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
                 <Bar dataKey="floatAmount" name="Float Amount" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
                 <Bar dataKey="cashInHand" name="Cash In Hand" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
-                <Bar dataKey="invoiceAmount" name="Invoice Amount" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={24} />
+                <Bar dataKey="invoiceAmount" name="Total Expenses" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={24} />
                 <Bar dataKey="utilization" name="Utilization" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={24} />
                 <Bar dataKey="variance" name="Variance" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={24} />
               </BarChart>

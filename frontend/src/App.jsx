@@ -20,6 +20,10 @@ import Dashboard, {
   AccountantImportRoute,
   AccountantDetailsRoute,
   AuditRoute,
+  CashFloatAmountRoute,
+  TotalExpensesRoute,
+  TotalRoute,
+  TotalSummaryRoute,
 } from './pages/Dashboard';
 import AdminPanel from './components/AdminPanel';
 
@@ -74,8 +78,12 @@ export default function App() {
             
             {/* Main Menu Routes */}
             <Route path="overview" element={<OverviewRoute />} />
+            <Route path="total-summary" element={<TotalSummaryRoute />} />
             <Route path="invoice-total" element={<InvoiceTotalRoute />} />
             <Route path="cash-in-hand" element={<CashInHandRoute />} />
+            <Route path="cash-float-amount" element={<CashFloatAmountRoute />} />
+            <Route path="total-expenses" element={<TotalExpensesRoute />} />
+            <Route path="total" element={<TotalRoute />} />
             <Route path="variance" element={<VarianceRoute />} />
             <Route path="monthly-summary" element={<MonthlySummaryRoute />} />
             <Route path="cost-centers" element={<CostCentersRoute />} />
