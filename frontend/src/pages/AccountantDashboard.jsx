@@ -16,8 +16,61 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  X
+  X,
+  TrendingUp,
+  Award,
+  Activity,
+  MapPin,
+  Clock,
+  LayoutDashboard
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend
+} from 'recharts';
+
+const MONTHS = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
+
+function monthIndex(m) {
+  return MONTHS.indexOf(m);
+}
+
+// Unified StatCard matching the Department Lead style
+function StatCard({ icon: Icon, label, value, subtext, accent, tint }) {
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/30">
+      <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: accent }} />
+      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-10 transition-transform duration-300 group-hover:scale-125" style={{ backgroundColor: accent }} />
+      <div className="relative px-5 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="mb-2 min-h-[1.5rem] text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 leading-snug">{label}</p>
+            <p className="whitespace-nowrap text-3xl font-black tracking-tight text-slate-950 tabular-nums">
+              {value}
+            </p>
+            {subtext && <p className="mt-1 text-xs font-semibold text-slate-400">{subtext}</p>}
+          </div>
+          <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 transition-transform duration-300 group-hover:scale-105 ${tint}`}>
+            <Icon className="h-5 w-5" strokeWidth={2.4} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AccountantDashboard({ refreshTrigger = 0 }) {
   const { user } = useAuth();
@@ -33,6 +86,9 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
   const [filterRegion, setFilterRegion] = useState('');
   const [filterReconciliation, setFilterReconciliation] = useState('');
 
+  // Analytics section toggle
+  const [showAnalytics, setShowAnalytics] = useState(true);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -46,7 +102,6 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
       try {
         setLoading(true);
         setError(null);
-        // GET /api/records will automatically apply backend filtering based on req.user.serviceNumber
         const res = await api.get('/records');
         setRecords(res.data || []);
       } catch (err) {
@@ -73,24 +128,19 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
   // Filter & Search Logic
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
-      // Search by PCF Ref
       if (searchPcfRef && !String(r.pcfRef || '').toLowerCase().includes(searchPcfRef.toLowerCase())) {
         return false;
       }
-      // Search by Employee Name (payingOfficer.name)
       const employeeName = r.payingOfficer?.name || '';
       if (searchEmployeeName && !employeeName.toLowerCase().includes(searchEmployeeName.toLowerCase())) {
         return false;
       }
-      // Search by Cost Center (costCenterName)
       if (searchCostCenter && !String(r.costCenterName || '').toLowerCase().includes(searchCostCenter.toLowerCase())) {
         return false;
       }
-      // Filter by Region
       if (filterRegion && r.region !== filterRegion) {
         return false;
       }
-      // Filter by Date of Reconciliation (checkedStatus)
       if (filterReconciliation && r.checkedStatus !== filterReconciliation) {
         return false;
       }
@@ -106,7 +156,6 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
         let aVal = '';
         let bVal = '';
 
-        // Handle nested fields
         if (sortConfig.key === 'email') {
           aVal = a.payingOfficer?.email || '';
           bVal = b.payingOfficer?.email || '';
@@ -163,7 +212,6 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
     return sortedRecords.slice(start, start + ITEMS_PER_PAGE);
   }, [sortedRecords, currentPage]);
 
-  // Request sort helper
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -179,13 +227,11 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
       : <ChevronDown className="ml-1 h-3.5 w-3.5 text-indigo-600" />;
   };
 
-  // Helper to check if reconciliation is completed
   const isReconciliationCompleted = (checkedStatus) => {
     if (!checkedStatus) return false;
     const status = String(checkedStatus).trim().toLowerCase();
-    // Common indicator for completed reconciliations
     return ['completed', 'checked', 'reconciled', 'yes', 'done'].includes(status) || 
-           (/\d{4}-\d{2}-\d{2}/.test(status)) || // If it has a date format
+           (/\d{4}-\d{2}-\d{2}/.test(status)) || 
            (/\d{1,2}\/\d{1,2}\/\d{4}/.test(status));
   };
 
@@ -206,14 +252,89 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
       }
     });
 
+    const pct = totalPCFs ? Math.round((completed / totalPCFs) * 100) : 0;
+
     return {
       totalPCFs,
       uniqueCostCenters,
       uniqueEmployees,
       completed,
       upcoming,
+      pct,
     };
   }, [records]);
+
+  // Accountant-specific Monthly and Regional progress calculations for Recharts
+  const monthlyData = useMemo(() => {
+    const groups = {};
+    filteredRecords.forEach(r => {
+      const key = `${r.year} ${r.month}`;
+      if (!groups[key]) {
+        groups[key] = { name: key, year: r.year, month: r.month, Assigned: 0, Completed: 0 };
+      }
+      groups[key].Assigned += 1;
+      if (isReconciliationCompleted(r.checkedStatus)) {
+        groups[key].Completed += 1;
+      }
+    });
+
+    return Object.values(groups).map(g => ({
+      ...g,
+      'Completion Rate': g.Assigned ? Math.round((g.Completed / g.Assigned) * 100) : 0
+    })).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return monthIndex(a.month) - monthIndex(b.month);
+    });
+  }, [filteredRecords]);
+
+  const regionData = useMemo(() => {
+    const groups = {};
+    filteredRecords.forEach(r => {
+      const key = r.region || 'No Region';
+      if (!groups[key]) {
+        groups[key] = { region: key, Assigned: 0, Completed: 0 };
+      }
+      groups[key].Assigned += 1;
+      if (isReconciliationCompleted(r.checkedStatus)) {
+        groups[key].Completed += 1;
+      }
+    });
+
+    return Object.values(groups).map(g => ({
+      ...g,
+      'Completion Rate': g.Assigned ? Math.round((g.Completed / g.Assigned) * 100) : 0
+    })).sort((a, b) => b.Completed - a.Completed);
+  }, [filteredRecords]);
+
+  // Automated Accountant Performance Insights
+  const personalInsights = useMemo(() => {
+    if (records.length === 0) return null;
+
+    // Primary Region
+    const regionCounts = {};
+    records.forEach(r => {
+      if (r.region) regionCounts[r.region] = (regionCounts[r.region] || 0) + 1;
+    });
+    const sortedRegions = Object.entries(regionCounts).sort((a, b) => b[1] - a[1]);
+    const primaryRegion = sortedRegions[0] ? `${sortedRegions[0][0]} (${sortedRegions[0][1]} PCFs)` : '—';
+
+    // Most productive period
+    const monthCounts = {};
+    records.forEach(r => {
+      if (isReconciliationCompleted(r.checkedStatus)) {
+        const key = `${r.month} ${r.year}`;
+        monthCounts[key] = (monthCounts[key] || 0) + 1;
+      }
+    });
+    const sortedMonths = Object.entries(monthCounts).sort((a, b) => b[1] - a[1]);
+    const topMonth = sortedMonths[0] ? `${sortedMonths[0][0]} (${sortedMonths[0][1]} Reconciled)` : '—';
+
+    return {
+      primaryRegion,
+      topMonth,
+      completionRate: `${metrics.pct}%`
+    };
+  }, [records, metrics.pct]);
 
   const clearFilters = () => {
     setSearchPcfRef('');
@@ -237,13 +358,22 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
             Assigned Petty Cash Float records filtered securely by your Service ID.
           </p>
         </div>
-        <button
-          onClick={() => setLocalRefresh(p => p + 1)}
-          className="flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 transition px-4 py-2 text-sm font-bold text-white border border-white/15 cursor-pointer self-start md:self-auto"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Data
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAnalytics(!showAnalytics)}
+            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 transition px-4 py-2 text-sm font-bold text-white border border-white/15 cursor-pointer"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+          </button>
+          <button
+            onClick={() => setLocalRefresh(p => p + 1)}
+            className="flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 transition px-4 py-2 text-sm font-bold text-white border border-white/15 cursor-pointer"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Data
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -256,124 +386,136 @@ export default function AccountantDashboard({ refreshTrigger = 0 }) {
         </div>
       )}
 
-      {/* Main Grid: Statistics & Profile */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Profile Card Section */}
-        <div className="lg:col-span-1 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-slate-900">My Profile</h3>
-                <p className="text-xs text-slate-500">Authenticated Session</p>
-              </div>
-            </div>
-            
-            <div className="mt-5 space-y-4">
-              <div className="flex items-start gap-3">
-                <Shield className="h-4.5 w-4.5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Accountant Name</p>
-                  <p className="text-sm font-bold text-slate-800">{user?.name || 'Reporting Accountant'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Mail className="h-4.5 w-4.5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email Address</p>
-                  <p className="text-sm font-bold text-slate-800 break-all">{user?.email || '—'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <FileSpreadsheet className="h-4.5 w-4.5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Service ID (Emp Number2)</p>
-                  <p className="text-sm font-bold text-slate-800 font-mono">{user?.serviceNumber || '—'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-4.5 w-4.5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned Record Count</p>
-                  <p className="text-sm font-bold text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded inline-block mt-0.5">
-                    {metrics.totalPCFs} records
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-100 p-4">
-            <p className="text-xs text-slate-500 leading-relaxed">
-              <strong>Note:</strong> Financial fields (Float, Cash in Hand, Expenses, Variance) are restricted and hidden to comply with Accountant Dashboard scope guidelines.
-            </p>
-          </div>
-        </div>
-
-        {/* Summary Cards Grid */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-          <div className="rounded-2xl border border-white bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between min-h-[140px] hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-500">Total PCFs</span>
-              <FileSpreadsheet className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-black tracking-tight text-slate-900 tabular-nums">{metrics.totalPCFs}</p>
-              <p className="text-xs text-slate-500 mt-1">Assigned PCF Refs</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between min-h-[140px] hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-500">Cost Centers</span>
-              <Building2 className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-black tracking-tight text-slate-900 tabular-nums">{metrics.uniqueCostCenters}</p>
-              <p className="text-xs text-slate-500 mt-1">Assigned Cost Centers</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between min-h-[140px] hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-500">Employees</span>
-              <Users className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-black tracking-tight text-slate-900 tabular-nums">{metrics.uniqueEmployees}</p>
-              <p className="text-xs text-slate-500 mt-1">Assigned Paying Officers</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between min-h-[140px] hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">Completed</span>
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-black tracking-tight text-slate-900 tabular-nums">{metrics.completed}</p>
-              <p className="text-xs text-slate-500 mt-1">Reconciled Records</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white bg-gradient-to-br from-amber-50 to-amber-100/50 p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between min-h-[140px] hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600">Upcoming</span>
-              <CalendarCheck className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-black tracking-tight text-slate-900 tabular-nums">{metrics.upcoming}</p>
-              <p className="text-xs text-slate-500 mt-1">Pending Reconciliation</p>
-            </div>
-          </div>
-        </div>
+      {/* Main Grid: Statistics Summary Cards spanning full width */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <StatCard
+          icon={FileSpreadsheet}
+          label="Total PCFs"
+          value={metrics.totalPCFs}
+          subtext="Assigned PCF Refs"
+          accent="#4f46e5"
+          tint="bg-indigo-50 text-indigo-600 ring-indigo-100"
+        />
+        <StatCard
+          icon={Building2}
+          label="Cost Centers"
+          value={metrics.uniqueCostCenters}
+          subtext="Assigned Cost Centers"
+          accent="#7c3aed"
+          tint="bg-violet-50 text-violet-600 ring-violet-100"
+        />
+        <StatCard
+          icon={Users}
+          label="Employees"
+          value={metrics.uniqueEmployees}
+          subtext="Assigned Paying Officers"
+          accent="#06b6d4"
+          tint="bg-cyan-50 text-cyan-600 ring-cyan-100"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Completed"
+          value={metrics.completed}
+          subtext="Reconciled Records"
+          accent="#10b981"
+          tint="bg-emerald-50 text-emerald-600 ring-emerald-100"
+        />
+        <StatCard
+          icon={CalendarCheck}
+          label="Upcoming"
+          value={metrics.upcoming}
+          subtext="Pending Reconciliation"
+          accent="#f59e0b"
+          tint="bg-amber-50 text-amber-600 ring-amber-100"
+        />
       </div>
+
+      {/* EXTENSION: Accountant Progress Analytics Section */}
+      {showAnalytics && records.length > 0 && (
+        <div className="space-y-6">
+          {/* Insights Panel */}
+          {personalInsights && (
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-4 border-b border-slate-100 pb-3">
+                <Award className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">My Reconciliation Performance Insights</h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><MapPin className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Primary Active Region</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800">{personalInsights.primaryRegion}</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><CheckCircle2 className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Most Productive Period</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800">{personalInsights.topMonth}</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600"><TrendingUp className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Completion Rate</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800">{personalInsights.completionRate}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Recharts Visualization */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Monthly Progress line chart */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-1">Monthly Completion Progress</h3>
+              <p className="text-xs font-semibold text-slate-400 mb-4">My assigned vs. reconciled records over time</p>
+              <div className="h-[240px] w-full">
+                {monthlyData.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-slate-400 text-xs">No monthly data available</div>
+                ) : (
+                  <ResponsiveContainer>
+                    <LineChart data={monthlyData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Line type="monotone" dataKey="Assigned" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="Completed" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Region Workload bar chart */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-1">Region Workload & Completion</h3>
+              <p className="text-xs font-semibold text-slate-400 mb-4">Assigned vs. reconciled records across regions</p>
+              <div className="h-[240px] w-full">
+                {regionData.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-slate-400 text-xs">No region data available</div>
+                ) : (
+                  <ResponsiveContainer>
+                    <BarChart data={regionData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="region" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="Assigned" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Completed" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter Section */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
