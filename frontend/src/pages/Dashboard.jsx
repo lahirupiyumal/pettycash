@@ -10,7 +10,6 @@ import CashInHand from '../components/CashInHand';
 import CashFloatAmount from '../components/CashFloatAmount';
 import TotalExpenses from '../components/TotalExpenses';
 import Total from '../components/Total';
-import TotalSummary from '../components/TotalSummary';
 import MonthlySummary from '../components/MonthlySummary';
 import Overview from '../components/Overview';
 import ImportedDataPage from './ImportedData';
@@ -127,21 +126,6 @@ export function TotalRoute() {
     );
   }
   return <Total records={records || []} />;
-}
-
-export function TotalSummaryRoute() {
-  const { records, recordsLoading, recordsError } = useOutletContext();
-  if (recordsError) {
-    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
-  }
-  if (recordsLoading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-  return <TotalSummary records={records || []} />;
 }
 
 export function VarianceRoute() {
@@ -265,7 +249,6 @@ export default function Dashboard() {
   const menuItems = useMemo(() => {
     const items = [
       { label: 'OVERVIEW', icon: LayoutDashboard, path: '/overview' },
-      { label: 'TOTAL SUMMARY', icon: LayoutDashboard, path: '/total-summary' },
       { label: 'CASH FLOAT AMOUNT', icon: Wallet, path: '/cash-float-amount' },
       { label: 'CASH IN HAND', icon: HandCoins, path: '/cash-in-hand' },
       { label: 'TOTAL EXPENSES', icon: ReceiptText, path: '/total-expenses' },
@@ -312,7 +295,7 @@ export default function Dashboard() {
       return [];
     }
 
-    return menuItems.filter(item => ['OVERVIEW', 'TOTAL SUMMARY', 'CASH FLOAT AMOUNT', 'CASH IN HAND', 'TOTAL EXPENSES', 'TOTAL', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label));
+    return menuItems.filter(item => ['OVERVIEW', 'CASH FLOAT AMOUNT', 'CASH IN HAND', 'TOTAL EXPENSES', 'TOTAL', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label));
   }, [isAdmin, isAccountant, menuItems]);
 
   const dataManagementItems = useMemo(() => {

@@ -23,7 +23,6 @@ import Dashboard, {
   CashFloatAmountRoute,
   TotalExpensesRoute,
   TotalRoute,
-  TotalSummaryRoute,
 } from './pages/Dashboard';
 import AdminPanel from './components/AdminPanel';
 
@@ -78,7 +77,6 @@ export default function App() {
             
             {/* Main Menu Routes */}
             <Route path="overview" element={<OverviewRoute />} />
-            <Route path="total-summary" element={<TotalSummaryRoute />} />
             <Route path="invoice-total" element={<InvoiceTotalRoute />} />
             <Route path="cash-in-hand" element={<CashInHandRoute />} />
             <Route path="cash-float-amount" element={<CashFloatAmountRoute />} />
