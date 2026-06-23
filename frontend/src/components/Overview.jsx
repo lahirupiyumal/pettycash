@@ -112,6 +112,7 @@ export default function Overview({ records = [] }) {
         acc.floatAmount += Number(record.floatAmount) || 0;
         acc.cashInHand += Number(record.cashInHand) || 0;
         acc.invoiceAmount += Number(record.invoiceAmount) || 0;
+        acc.total += Number(record.total) || 0;
         acc.utilization += Number(record.utilization) || 0;
         acc.variance += Number(record.variance) || 0;
         return acc;
@@ -120,6 +121,7 @@ export default function Overview({ records = [] }) {
         floatAmount: 0,
         cashInHand: 0,
         invoiceAmount: 0,
+        total: 0,
         utilization: 0,
         variance: 0,
       }
@@ -237,8 +239,8 @@ export default function Overview({ records = [] }) {
   const cards = [
     { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3, tint: 'bg-blue-50 text-blue-600 ring-blue-100' },
     { label: 'Total Cash In Hand', value: totals.cashInHand, icon: Sparkles, tint: 'bg-teal-50 text-teal-600 ring-teal-100' },
-    { label: 'Total Invoice Amount', value: totals.invoiceAmount, icon: TrendingUp, tint: 'bg-violet-50 text-violet-600 ring-violet-100' },
-    { label: 'Total Expenses', value: totals.utilization, icon: PieChartIcon, tint: 'bg-amber-50 text-amber-600 ring-amber-100' },
+    { label: 'Total Expenses', value: totals.invoiceAmount, icon: TrendingUp, tint: 'bg-violet-50 text-violet-600 ring-violet-100' },
+    { label: 'Total', value: totals.total, icon: PieChartIcon, tint: 'bg-teal-50 text-teal-600 ring-teal-100' },
     { label: 'Total Variance', value: totals.variance, icon: PieChartIcon, tint: 'bg-red-50 text-red-600 ring-red-100' },
   ];
 
