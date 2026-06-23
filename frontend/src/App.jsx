@@ -16,8 +16,6 @@ import Dashboard, {
   ForecastRoute,
   ImportedDataRoute,
   ImportExcelFileRoute,
-  AccountantDataRoute,
-  AccountantImportRoute,
   AccountantDetailsRoute,
   AuditRoute,
   CashFloatAmountRoute,
@@ -92,8 +90,6 @@ export default function App() {
             {/* Data Management Routes */}
             <Route path="imported-data" element={<AdminRoute><ImportedDataRoute /></AdminRoute>} />
             <Route path="import-excel" element={<AdminRoute><ImportExcelFileRoute /></AdminRoute>} />
-            <Route path="accountant-data" element={<AdminRoute><AccountantDataRoute /></AdminRoute>} />
-            <Route path="accountant-import" element={<AdminRoute><AccountantImportRoute /></AdminRoute>} />
             
             {/* Admin Panel Route */}
             <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />

@@ -16,8 +16,6 @@ import ImportedDataPage from './ImportedData';
 import Forecast from '../components/Forecast';
 import InvoiceTotal from '../components/InvoiceTotal';
 import CostCenters from '../components/CostCenters';
-import AccountantImport from './AccountantImport';
-import AccountantImportedData from './AccountantImportedData';
 import AccountantProgressAnalytics from './AccountantProgressAnalytics';
 import AccountantDashboard from './AccountantDashboard';
 import Audit from './Audit';
@@ -192,16 +190,6 @@ export function ImportExcelFileRoute() {
   return <ImportExcelFile onImportSuccess={handleImportSuccess} />;
 }
 
-export function AccountantDataRoute() {
-  const { refreshTrigger } = useOutletContext();
-  return <AccountantImportedData refreshTrigger={refreshTrigger} />;
-}
-
-export function AccountantImportRoute() {
-  const { handleAccountantImportSuccess } = useOutletContext();
-  return <AccountantImport onImportSuccess={handleAccountantImportSuccess} />;
-}
-
 export function AccountantDetailsRoute() {
   const { refreshTrigger } = useOutletContext();
   const { user } = useAuth();
@@ -233,11 +221,6 @@ export default function Dashboard() {
     navigate('/imported-data');
   }, [navigate]);
 
-  const handleAccountantImportSuccess = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
-    navigate('/accountant-data');
-  }, [navigate]);
-
   const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
@@ -260,8 +243,6 @@ export default function Dashboard() {
       { label: 'Accountant Details', icon: BookUser, path: '/accountant-details' },
       { label: 'Imported Data', icon: FileSpreadsheet, path: '/imported-data' },
       { label: 'Import Excel File', icon: Upload, path: '/import-excel' },
-      { label: 'Accountant Data', icon: FileSpreadsheet, path: '/accountant-data' },
-      { label: 'Accountant Import', icon: Upload, path: '/accountant-import' },
     ];
 
     if (isAdmin) {
@@ -303,10 +284,7 @@ export default function Dashboard() {
       return [];
     }
 
-    return menuItems.filter(item => {
-      const allowed = ['Imported Data', 'Import Excel File', 'Accountant Data', 'Accountant Import'];
-      return allowed.includes(item.label);
-    });
+    return menuItems.filter(item => ['Imported Data', 'Import Excel File'].includes(item.label));
   }, [isAdmin, menuItems]);
 
   const profileItems = useMemo(() => {
@@ -655,7 +633,6 @@ export default function Dashboard() {
                 recordsError,
                 refreshTrigger,
                 handleImportSuccess,
-                handleAccountantImportSuccess,
                 handleDeleteSuccess,
               }}
             />
