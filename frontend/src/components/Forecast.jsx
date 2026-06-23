@@ -163,7 +163,7 @@ export default function Forecast({ records = [] }) {
               <p className="text-sm font-semibold text-slate-500">No forecast data available.</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={200}>
               <LineChart data={forecastData.cashInHand} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
@@ -257,7 +257,7 @@ export default function Forecast({ records = [] }) {
               <p className="text-sm font-semibold text-slate-500">No forecast data available.</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={200}>
               <LineChart data={forecastData.floatAmount} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
@@ -351,7 +351,7 @@ export default function Forecast({ records = [] }) {
               <p className="text-sm font-semibold text-slate-500">No forecast data available.</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={200}>
               <LineChart data={forecastData.invoiceAmount} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
