@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import logo from '../Assert/Logo.jpg';
+import logo from '../Assert/Logo.png';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });

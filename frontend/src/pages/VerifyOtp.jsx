@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import logo from '../Assert/Logo.jpg';
+import logo from '../Assert/Logo.png';
 
 export default function VerifyOtp() {
   const location = useLocation();

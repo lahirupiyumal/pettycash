@@ -19,7 +19,7 @@ import CostCenters from '../components/CostCenters';
 import AccountantProgressAnalytics from './AccountantProgressAnalytics';
 import AccountantDashboard from './AccountantDashboard';
 import Audit from './Audit';
-import logo from '../Assert/Logo.jpg';
+import logo from '../Assert/Logo.png';
 import {
   BarChart3,
   BookUser,
