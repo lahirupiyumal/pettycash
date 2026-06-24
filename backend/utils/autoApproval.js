@@ -41,7 +41,7 @@ const findReportingAccountantMatch = async (serviceNumber) => {
 };
 
 const autoApproveReportingAccountant = async (user) => {
-  if (!user?.serviceNumber || user.role === 'admin' || user.status === 'rejected') {
+  if (!user?.serviceNumber || user.role !== 'accountant' || user.status === 'rejected') {
     return { user, approved: false, match: null };
   }
 
@@ -49,10 +49,6 @@ const autoApproveReportingAccountant = async (user) => {
   if (!match) return { user, approved: false, match: null };
 
   let changed = false;
-  if (user.role !== 'accountant') {
-    user.role = 'accountant';
-    changed = true;
-  }
   if (user.status !== 'approved') {
     user.status = 'approved';
     changed = true;

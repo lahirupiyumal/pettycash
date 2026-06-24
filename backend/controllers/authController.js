@@ -142,7 +142,7 @@ exports.selectRole = async (req, res) => {
     if (!userId || !role) {
       return res.status(400).json({ message: 'User ID and role are required.' });
     }
-    if (!['user', 'accountant', 'department_lead'].includes(role)) {
+    if (!['accountant', 'department_lead'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role selection.' });
     }
     const user = await User.findById(userId);
@@ -155,7 +155,35 @@ exports.selectRole = async (req, res) => {
     user.role = role;
     user.roleSelected = true;
     await user.save();
-    return res.json({ message: 'Role selected successfully. Your account is pending admin approval.' });
+
+    if (role === 'accountant') {
+      const autoApproval = await autoApproveReportingAccountant(user);
+      if (autoApproval.approved) {
+        createAuditLog(
+          autoApproval.user,
+          'Auto-approved reporting accountant',
+          'approval',
+          `Service ID ${autoApproval.user.serviceNumber} matched Reporting Accountant Emp in imported data.`,
+          {
+            method: 'microsoft-role-selection',
+            matchedRegion: autoApproval.match?.region,
+            matchedPcfRef: autoApproval.match?.pcfRef,
+            matchedEmpNumber: autoApproval.match?.reportingAccountant?.empNumber,
+          },
+          req
+        ).catch(err => console.error('Auto-approval audit log error:', err));
+
+        return res.json({
+          approved: true,
+          message: 'Your accountant account was automatically approved. Please sign in again.',
+        });
+      }
+    }
+
+    return res.json({
+      approved: false,
+      message: 'Role selected successfully. Your account is pending admin approval.',
+    });
   } catch (err) {
     return res.status(500).json({ message: err.message || 'Failed to select role.' });
   }

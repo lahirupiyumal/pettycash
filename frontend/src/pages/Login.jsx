@@ -15,7 +15,7 @@ export default function Login() {
 
   const [pendingRoleSelection, setPendingRoleSelection] = useState(false);
   const [selectRoleUserId, setSelectRoleUserId] = useState(null);
-  const [selectedRole, setSelectedRole] = useState('user');
+  const [selectedRole, setSelectedRole] = useState('department_lead');
   const [submittingRole, setSubmittingRole] = useState(false);
 
   // Once token state is committed (by login() or from localStorage on mount),
@@ -96,11 +96,11 @@ export default function Login() {
     setError('');
     setSuccess('');
     try {
-      await api.post('/auth/select-role', {
+      const { data } = await api.post('/auth/select-role', {
         userId: selectRoleUserId,
         role: selectedRole,
       });
-      setSuccess('Your account request has been sent to the administrator for approval. Please wait until your account is approved.');
+      setSuccess(data.message || 'Your account request has been sent to the administrator for approval. Please wait until your account is approved.');
       setPendingRoleSelection(false);
       setSelectRoleUserId(null);
       navigate('/login', { replace: true });
@@ -153,13 +153,13 @@ export default function Login() {
                       onChange={e => setSelectedRole(e.target.value)}
                       required
                     >
-                      <option value="user">User</option>
+                      <option value="department_lead">Department Lead</option>
                       <option value="accountant">Accountant</option>
                     </select>
                     <p className="mt-1.5 text-[10px] text-slate-400">
-                      {selectedRole === 'user' 
-                        ? 'Standard user account with basic access' 
-                        : 'Accountant account with extended data management privileges'}
+                      {selectedRole === 'department_lead'
+                        ? 'Department Lead accounts require manual administrator approval.'
+                        : 'Accountant accounts are auto-approved only when your service ID matches Reporting Accountant Emp.'}
                     </p>
                   </div>
 
