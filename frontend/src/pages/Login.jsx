@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import logo from '../Assert/Logo.jpg';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -120,8 +121,8 @@ export default function Login() {
       <div className="relative w-full max-w-md z-10">
         <div className="flex justify-center mb-8">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg"
-            alt="SLT Logo"
+            src={logo}
+            alt="Logo"
             className="h-16 w-auto object-contain drop-shadow-lg"
           />
         </div>

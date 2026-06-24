@@ -3,6 +3,8 @@ const { CryptoProvider } = require('@azure/msal-node');
 const crypto = require('crypto');
 const User = require('../models/User');
 const { msalClient, REDIRECT_URI, MICROSOFT_SCOPES } = require('../config/msalClient');
+const { createAuditLog } = require('../middleware/audit');
+const { autoApproveReportingAccountant } = require('../utils/autoApproval');
 
 const cryptoProvider = new CryptoProvider();
 
@@ -245,9 +247,27 @@ exports.microsoftFinish = async (req, res) => {
       return res.status(400).json({ message: 'Unable to read Microsoft account details.' });
     }
 
-    const { user, isNew } = await upsertMicrosoftUser({ microsoftId, email, name, serviceNumber });
+    let { user } = await upsertMicrosoftUser({ microsoftId, email, name, serviceNumber });
+    const autoApproval = await autoApproveReportingAccountant(user);
+    user = autoApproval.user;
 
-    if (isNew || (user.status === 'pending' && !user.roleSelected)) {
+    if (autoApproval.approved) {
+      createAuditLog(
+        user,
+        'Auto-approved reporting accountant',
+        'approval',
+        `Service ID ${user.serviceNumber} matched Reporting Accountant Emp in imported data.`,
+        {
+          method: 'microsoft',
+          matchedRegion: autoApproval.match?.region,
+          matchedPcfRef: autoApproval.match?.pcfRef,
+          matchedEmpNumber: autoApproval.match?.reportingAccountant?.empNumber,
+        },
+        req
+      ).catch(err => console.error('Auto-approval audit log error:', err));
+    }
+
+    if (user.status === 'pending' && !user.roleSelected) {
       return res.json({
         redirect: `${FRONTEND_LOGIN}?selectRole=true&userId=${user._id}`
       });

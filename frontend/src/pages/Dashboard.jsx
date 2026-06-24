@@ -19,6 +19,7 @@ import CostCenters from '../components/CostCenters';
 import AccountantProgressAnalytics from './AccountantProgressAnalytics';
 import AccountantDashboard from './AccountantDashboard';
 import Audit from './Audit';
+import logo from '../Assert/Logo.jpg';
 import {
   BarChart3,
   BookUser,
@@ -331,8 +332,8 @@ export default function Dashboard() {
         {/* Logo Section */}
         <div className="relative flex items-center justify-center py-8 px-6 border-b border-slate-800/60">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg"
-            alt="SLT Logo"
+            src={logo}
+            alt="Logo"
             className="h-16 w-auto object-contain drop-shadow-md"
           />
         </div>
