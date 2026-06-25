@@ -52,7 +52,7 @@ export default function VerifyOtp() {
           <img
             src={logo}
             alt="Logo"
-            className="h-16 w-auto object-contain drop-shadow-lg"
+            className="h-20 w-auto object-contain drop-shadow-lg"
           />
         </div>
 
