@@ -43,11 +43,11 @@ const pettyCashRecordSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
-// Enforce uniqueness at the database level across ALL files.
-// A record for the same user, region, pcfRef, year, and month can only exist once.
+// Keep identity lookups fast while allowing multiple non-identical Excel rows
+// for the same user, region, PCF ref, year, and month.
 pettyCashRecordSchema.index(
   { createdBy: 1, region: 1, pcfRef: 1, year: 1, month: 1 },
-  { unique: true, collation: { locale: 'en', strength: 2 } } // case-insensitive
+  { collation: { locale: 'en', strength: 2 } } // case-insensitive
 );
 
 module.exports = mongoose.model('PettyCashRecord', pettyCashRecordSchema);

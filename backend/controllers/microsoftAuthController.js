@@ -245,9 +245,9 @@ exports.microsoftFinish = async (req, res) => {
       return res.status(400).json({ message: 'Unable to read Microsoft account details.' });
     }
 
-    const { user, isNew } = await upsertMicrosoftUser({ microsoftId, email, name, serviceNumber });
+    const { user } = await upsertMicrosoftUser({ microsoftId, email, name, serviceNumber });
 
-    if (isNew || (user.status === 'pending' && !user.roleSelected)) {
+    if (user.status === 'pending' && !user.roleSelected) {
       return res.json({
         redirect: `${FRONTEND_LOGIN}?selectRole=true&userId=${user._id}`
       });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import logo from '../Assert/Logo.png';
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'department_lead' });
@@ -49,9 +50,9 @@ export default function Register() {
       <div className="relative w-full max-w-md z-10">
         <div className="flex justify-center mb-8">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg"
-            alt="SLT Logo"
-            className="h-16 w-auto object-contain drop-shadow-lg"
+            src={logo}
+            alt="Logo"
+            className="h-20 w-auto object-contain drop-shadow-lg"
           />
         </div>
 
