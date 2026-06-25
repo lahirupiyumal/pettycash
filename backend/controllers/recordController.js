@@ -6,23 +6,149 @@ const User = require('../models/User');
 const { createAuditLog } = require('../middleware/audit');
 const XLSX = require('xlsx');
 
+const normalizeIdentityValue = (value) => {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'number') return Number.isNaN(value) ? '' : value;
+  return String(value).trim().toLowerCase();
+};
+
+const exactExcelValue = (value) => {
+  if (value === undefined) return null;
+  if (value instanceof Date) return value.toISOString();
+  return value;
+};
+
+const getReconciliationValue = (record) => {
+  if (record.dateOfReconciliation !== undefined && record.dateOfReconciliation !== null) {
+    return record.dateOfReconciliation;
+  }
+  return record.checkedStatus;
+};
+
+const buildRecordIdentityKey = (record) => JSON.stringify([
+  normalizeIdentityValue(record.region),
+  normalizeIdentityValue(record.pcfRef),
+  normalizeIdentityValue(record.year),
+  normalizeIdentityValue(record.month),
+]);
+
+const buildImportedExcelRowKey = (record) => JSON.stringify([
+  exactExcelValue(record.region),
+  exactExcelValue(record.pcfRef),
+  exactExcelValue(record.costCenterName),
+  exactExcelValue(record.number),
+  exactExcelValue(record.payingOfficer?.email),
+  exactExcelValue(record.supervisingOfficer?.name),
+  exactExcelValue(record.supervisingOfficer?.email),
+  exactExcelValue(record.supervisingOfficer?.empNumber),
+  exactExcelValue(record.reportingAccountant?.name),
+  exactExcelValue(record.reportingAccountant?.email),
+  exactExcelValue(record.reportingAccountant?.empNumber),
+  exactExcelValue(record.payingOfficer?.name),
+  exactExcelValue(record.payingOfficer?.empNumber),
+  exactExcelValue(getReconciliationValue(record)),
+  exactExcelValue(record.floatAmount),
+  exactExcelValue(record.cashInHand),
+  exactExcelValue(record.invoiceAmount),
+  exactExcelValue(record.total),
+  exactExcelValue(record.variance),
+]);
+
+const getRecordIdentityFilter = (record, userId) => ({
+  createdBy: userId,
+  region: record.region,
+  pcfRef: record.pcfRef,
+  year: record.year,
+  month: record.month,
+});
+
+const CASE_INSENSITIVE_COLLATION = { locale: 'en', strength: 2 };
+const LEGACY_IDENTITY_INDEX_KEY = { createdBy: 1, region: 1, pcfRef: 1, year: 1, month: 1 };
+const RECORD_LOOKUP_FIELDS = 'region pcfRef costCenterName number payingOfficer supervisingOfficer reportingAccountant year month floatAmount cashInHand invoiceAmount total variance checkedStatus dateOfReconciliation importFileId';
+const IDENTITY_LOOKUP_BATCH_SIZE = 500;
+
+let legacyIdentityIndexDropPromise = null;
+
+const hasSameIndexKey = (actualKey, expectedKey) => {
+  const actualEntries = Object.entries(actualKey || {});
+  const expectedEntries = Object.entries(expectedKey);
+  return actualEntries.length === expectedEntries.length
+    && expectedEntries.every(([key, value]) => actualKey[key] === value);
+};
+
+const dropLegacyIdentityUniqueIndex = async () => {
+  if (!legacyIdentityIndexDropPromise) {
+    legacyIdentityIndexDropPromise = (async () => {
+      const indexes = await PettyCashRecord.collection.indexes();
+      const legacyIndex = indexes.find(index =>
+        index.unique && hasSameIndexKey(index.key, LEGACY_IDENTITY_INDEX_KEY)
+      );
+
+      if (legacyIndex) {
+        await PettyCashRecord.collection.dropIndex(legacyIndex.name);
+      }
+    })().catch((err) => {
+      legacyIdentityIndexDropPromise = null;
+      if (err?.codeName === 'IndexNotFound' || err?.code === 27) return;
+      throw err;
+    });
+  }
+
+  return legacyIdentityIndexDropPromise;
+};
+
+const fetchExistingRecordsForIdentities = async (userId, identityFilters) => {
+  if (identityFilters.length === 0) return [];
+
+  const queries = [];
+  for (let i = 0; i < identityFilters.length; i += IDENTITY_LOOKUP_BATCH_SIZE) {
+    const batch = identityFilters.slice(i, i + IDENTITY_LOOKUP_BATCH_SIZE);
+    queries.push(
+      PettyCashRecord.find({
+        createdBy: userId,
+        $or: batch.map(({ createdBy, ...filter }) => filter),
+      })
+        .select(RECORD_LOOKUP_FIELDS)
+        .collation(CASE_INSENSITIVE_COLLATION)
+        .lean()
+    );
+  }
+
+  const batches = await Promise.all(queries);
+  return batches.flat();
+};
+
 const processImportRecords = async (records, fileName, userId) => {
   if (!records || !Array.isArray(records) || records.length === 0) {
     throw new Error('Invalid records array');
   }
 
-  // Step 1: Deduplicate rows within the uploaded file itself
+  // Step 1: Deduplicate exact Excel rows within the uploaded file itself.
   const uniqueIncoming = [];
-  const seenKeys = new Set();
+  const seenExcelRows = new Set();
   for (const r of records) {
-    const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
-    if (!seenKeys.has(key)) {
-      seenKeys.add(key);
+    const key = buildImportedExcelRowKey(r);
+    if (!seenExcelRows.has(key)) {
+      seenExcelRows.add(key);
       uniqueIncoming.push(r);
     }
   }
 
   const isGoogleDriveSync = fileName === 'GoogleDrive_PettyCash.xlsx';
+  const identityFilters = [
+    ...new Map(
+      uniqueIncoming.map(record => [
+        buildRecordIdentityKey(record),
+        getRecordIdentityFilter(record, userId),
+      ])
+    ).values(),
+  ];
+
+  const existingDocs = await fetchExistingRecordsForIdentities(userId, identityFilters);
+
+  const existingExcelRows = new Set(existingDocs.map(buildImportedExcelRowKey));
+  const recordsToInsert = uniqueIncoming.filter(record => !existingExcelRows.has(buildImportedExcelRowKey(record)));
+  const skipped = records.length - recordsToInsert.length;
 
   if (isGoogleDriveSync) {
     let importFile = await ImportedFile.findOne({
@@ -40,39 +166,44 @@ const processImportRecords = async (records, fileName, userId) => {
       });
     }
 
-    const ops = uniqueIncoming.map(record => ({
-      updateOne: {
-        filter: {
-          createdBy: userId,
-          region: record.region,
-          pcfRef: record.pcfRef,
-          year: record.year,
-          month: record.month
+    if (recordsToInsert.length === 0) {
+      return {
+        message: `No petty cash changes found. ${skipped} duplicate record(s) were skipped.`,
+        count: 0,
+        skipped,
+        file: {
+          id: importFile._id,
+          fileName: importFile.fileName,
         },
-        update: {
-          $set: {
-            ...record,
-            createdBy: userId,
-            sourceFileName: fileName,
-            importFileId: importFile._id
-          }
-        },
-        upsert: true
-      }
+      };
+    }
+
+    await dropLegacyIdentityUniqueIndex();
+
+    const recordsToCreate = recordsToInsert.map(record => ({
+      ...record,
+      createdBy: userId,
+      sourceFileName: fileName,
+      importFileId: importFile._id
     }));
 
-    await PettyCashRecord.bulkWrite(ops);
+    const insertedDocs = await PettyCashRecord.insertMany(recordsToCreate, { ordered: false });
+
+    const recordCount = await PettyCashRecord.countDocuments({
+      createdBy: userId,
+      importFileId: importFile._id,
+    });
 
     importFile = await ImportedFile.findByIdAndUpdate(
       importFile._id,
-      { recordCount: uniqueIncoming.length },
+      { recordCount },
       { new: true }
     );
 
     return {
-      message: `Successfully synchronized ${uniqueIncoming.length} record(s) from Google Drive.`,
-      count: uniqueIncoming.length,
-      skipped: 0,
+      message: `Successfully synchronized ${insertedDocs.length} changed record(s) from Google Drive.${skipped > 0 ? ` ${skipped} duplicate(s) were skipped.` : ''}`,
+      count: insertedDocs.length,
+      skipped,
       file: {
         id: importFile._id,
         fileName: importFile.fileName,
@@ -80,34 +211,9 @@ const processImportRecords = async (records, fileName, userId) => {
     };
   }
 
-  // Step 2: Find records that already exist in the DB for this user
-  const existingDocs = await PettyCashRecord.find({
-    createdBy: userId,
-    $or: uniqueIncoming.map(r => ({
-      region: r.region,
-      pcfRef: r.pcfRef,
-      year: r.year,
-      month: r.month,
-    })),
-  }).select('region pcfRef year month');
-
-  const existingKeys = new Set(
-    existingDocs.map(r =>
-      `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`
-    )
-  );
-
-  // Step 3: Keep only records that do NOT exist in the DB
-  const newRecords = uniqueIncoming.filter(r => {
-    const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
-    return !existingKeys.has(key);
-  });
-
-  const skipped = records.length - newRecords.length;
-
   let importFile = null;
 
-  if (newRecords.length === 0) {
+  if (recordsToInsert.length === 0) {
     return {
       message: `No new records imported. All ${skipped} record(s) already exist in the system.`,
       count: 0,
@@ -124,42 +230,27 @@ const processImportRecords = async (records, fileName, userId) => {
     });
   }
 
-  const recordsToInsert = newRecords.map(record => ({
+  await dropLegacyIdentityUniqueIndex();
+
+  const recordsToCreate = recordsToInsert.map(record => ({
     ...record,
     createdBy: userId,
     sourceFileName: fileName || 'Imported Excel File',
     importFileId: importFile._id,
   }));
 
-  let insertedCount = 0;
-  let dbSkipped = 0;
-
-  try {
-    // ordered: false → MongoDB continues on duplicate key errors instead of stopping
-    const result = await PettyCashRecord.insertMany(recordsToInsert, { ordered: false });
-    insertedCount = result.length;
-  } catch (bulkErr) {
-    // Code 11000 = duplicate key — some records inserted, some skipped
-    if (bulkErr.code === 11000 || bulkErr.name === 'BulkWriteError') {
-      insertedCount = bulkErr.result?.nInserted ?? 0;
-      dbSkipped = recordsToInsert.length - insertedCount;
-    } else {
-      throw bulkErr; // rethrow unexpected errors
-    }
-  }
-
-  const totalSkipped = skipped + dbSkipped;
+  const insertedDocs = await PettyCashRecord.insertMany(recordsToCreate, { ordered: false });
 
   importFile = await ImportedFile.findByIdAndUpdate(
     importFile._id,
-    { $inc: { recordCount: insertedCount } },
+    { $inc: { recordCount: insertedDocs.length } },
     { new: true }
   );
 
   return {
-    message: `Successfully imported ${insertedCount} record(s).${totalSkipped > 0 ? ` ${totalSkipped} duplicate(s) were skipped.` : ''}`,
-    count: insertedCount,
-    skipped: totalSkipped,
+    message: `Successfully imported ${insertedDocs.length} record(s).${skipped > 0 ? ` ${skipped} duplicate(s) were skipped.` : ''}`,
+    count: insertedDocs.length,
+    skipped,
     file: {
       id: importFile._id,
       fileName: importFile.fileName,
