@@ -32,7 +32,7 @@ const TOKEN_URL = `https://login.microsoftonline.com/${process.env.MICROSOFT_TEN
 const SCOPES = MICROSOFT_SCOPES.join(' ');
 
 const createJwt = (user) =>
-  jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  jwt.sign({ id: user._id, role: user.role, serviceNumber: user.serviceNumber }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
 const redirectWithError = (res, message) =>
   res.redirect(`${FRONTEND_LOGIN}?error=${encodeURIComponent(message)}`);
@@ -40,13 +40,13 @@ const redirectWithError = (res, message) =>
 const buildAuthRedirect = (user) => {
   const payload = {
     token: createJwt(user),
-    user: { id: user._id, name: user.name, email: user.email, role: user.role, joinedDate: user.createdAt },
+    user: { id: user._id, name: user.name, email: user.email, role: user.role, serviceNumber: user.serviceNumber, joinedDate: user.createdAt },
   };
   const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return `${FRONTEND_LOGIN}?auth=${encoded}`;
 };
 
-const upsertMicrosoftUser = exports.upsertMicrosoftUser = async ({ microsoftId, email, name }) => {
+const upsertMicrosoftUser = exports.upsertMicrosoftUser = async ({ microsoftId, email, name, serviceNumber }) => {
   let isNew = false;
   let user = microsoftId ? await User.findOne({ microsoftId }) : null;
   if (!user && email) user = await User.findOne({ email });
@@ -62,12 +62,15 @@ const upsertMicrosoftUser = exports.upsertMicrosoftUser = async ({ microsoftId, 
       role: 'user',
       status: 'pending',
       isApproved: false,
+      serviceNumber: serviceNumber || '',
     });
   } else {
     const patch = {};
     if (microsoftId && !user.microsoftId) patch.microsoftId = microsoftId;
     if (user.authProvider !== 'microsoft') patch.authProvider = 'microsoft';
     if (!user.name || user.name === user.email) patch.name = name;
+    // Always update serviceNumber from Azure AD UPN on every login
+    if (serviceNumber && user.serviceNumber !== serviceNumber) patch.serviceNumber = serviceNumber;
 
     if (Object.keys(patch).length) {
       await User.updateOne({ _id: user._id }, { $set: patch });
@@ -85,7 +88,7 @@ exports.microsoftLogin = async (req, res) => {
     }
 
     const { verifier, challenge } = await cryptoProvider.generatePkceCodes();
-    
+
     const statePayload = JSON.stringify({
       verifier,
       expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes expiry
@@ -227,13 +230,24 @@ exports.microsoftFinish = async (req, res) => {
     const email = (profile.mail || profile.userPrincipalName || '').trim().toLowerCase();
     const name = profile.displayName || email || 'Microsoft User';
 
+    // Extract Service Number from UPN (e.g., '019919' from '019919@intranet.slt.com.lk')
+    const upn = (profile.userPrincipalName || '').trim().toLowerCase();
+    const serviceNumber = upn.includes('@') ? upn.split('@')[0] : '';
+
+    console.log('[Microsoft Finish] UPN debug:', {
+      userPrincipalName: profile.userPrincipalName,
+      mail: profile.mail,
+      displayName: profile.displayName,
+      derivedServiceNumber: serviceNumber,
+    });
+
     if (!email && !microsoftId) {
       return res.status(400).json({ message: 'Unable to read Microsoft account details.' });
     }
 
-    const { user, isNew } = await upsertMicrosoftUser({ microsoftId, email, name });
+    const { user } = await upsertMicrosoftUser({ microsoftId, email, name, serviceNumber });
 
-    if (isNew || (user.status === 'pending' && !user.roleSelected)) {
+    if (user.status === 'pending' && !user.roleSelected) {
       return res.json({
         redirect: `${FRONTEND_LOGIN}?selectRole=true&userId=${user._id}`
       });

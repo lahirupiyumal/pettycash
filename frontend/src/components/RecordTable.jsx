@@ -1,14 +1,18 @@
 import { AlertCircle, FileSpreadsheet } from 'lucide-react';
 
-export default function RecordTable({ records }) {
+export default function RecordTable({
+  records,
+  emptyTitle = 'No records found',
+  emptySubtitle = 'Import an Excel file to get started.',
+}) {
   if (!records || records.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4 bg-white">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 mb-4">
           <FileSpreadsheet className="h-8 w-8 text-slate-400" strokeWidth={1.5} />
         </div>
-        <p className="text-base font-bold text-slate-700">No records found</p>
-        <p className="text-sm text-slate-500 mt-1">Import an Excel file to get started.</p>
+        <p className="text-base font-bold text-slate-700">{emptyTitle}</p>
+        <p className="text-sm text-slate-500 mt-1">{emptySubtitle}</p>
       </div>
     );
   }
@@ -36,6 +40,7 @@ export default function RecordTable({ records }) {
             <th className="px-4 py-3 border-b border-slate-100 text-right">Float Amount</th>
             <th className="px-4 py-3 border-b border-slate-100 text-right">Cash In Hand</th>
             <th className="px-4 py-3 border-b border-slate-100 text-right">Invoice Amount</th>
+            <th className="px-4 py-3 border-b border-slate-100 text-right">Total</th>
             <th className="px-4 py-3 border-b border-slate-100 text-right">Utilization</th>
             <th className="px-4 py-3 border-b border-slate-100 text-right">Variance</th>
             <th className="px-4 py-3 border-b border-slate-100">Variance Status</th>
@@ -63,6 +68,7 @@ export default function RecordTable({ records }) {
               <td className="px-4 py-2.5 text-right font-medium text-slate-600">{(r.floatAmount || 0).toLocaleString()}</td>
               <td className="px-4 py-2.5 text-right font-medium text-slate-600">{(r.cashInHand || 0).toLocaleString()}</td>
               <td className="px-4 py-2.5 text-right font-medium text-slate-600">{(r.invoiceAmount || 0).toLocaleString()}</td>
+              <td className="px-4 py-2.5 text-right font-medium text-slate-600">{(r.total || 0).toLocaleString()}</td>
               <td className="px-4 py-2.5 text-right font-medium text-slate-600">{(r.utilization || 0).toLocaleString()}</td>
               <td className={`px-4 py-2.5 text-right font-bold ${r.variance !== 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                 {(r.variance || 0).toLocaleString()}

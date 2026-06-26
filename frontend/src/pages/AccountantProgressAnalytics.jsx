@@ -1,239 +1,51 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle,
-  BarChart3,
+  Building2,
   CalendarDays,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Filter,
-  LineChart as LineChartIcon,
-  ListChecks,
+  FileSpreadsheet,
+  Hash,
+  MapPin,
   Search,
-  Target,
+  X,
   TrendingUp,
   Users,
-  X,
+  Award,
+  AlertCircle,
+  Activity,
+  UserCheck,
+  Percent,
+  TrendingDown,
+  Clock,
+  ArrowRight,
 } from 'lucide-react';
+import api from '../api/axios';
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
-  Tooltip,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  CartesianGrid,
   XAxis,
   YAxis,
+  Tooltip,
+  Legend,
 } from 'recharts';
-import api from '../api/axios';
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const MONTH_LOOKUP = {
-  jan: 'January', january: 'January', feb: 'February', february: 'February', mar: 'March', march: 'March', apr: 'April', april: 'April',
-  may: 'May', jun: 'June', june: 'June', jul: 'July', july: 'July', aug: 'August', august: 'August', sep: 'September', sept: 'September', september: 'September',
-  oct: 'October', october: 'October', nov: 'November', november: 'November', dec: 'December', december: 'December',
-};
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
-const CARD_ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#f59e0b', '#dc2626'];
-const COLORS = ['#2563eb', '#7c3aed', '#059669', '#dc2626', '#d97706', '#0891b2', '#db2777', '#4f46e5', '#16a34a', '#ea580c'];
-
-function normalizeMonth(month) {
-  const value = String(month || '').trim();
-  const normalized = MONTH_LOOKUP[value.toLowerCase()];
-  return normalized || value;
+function monthIndex(m) {
+  return MONTHS.indexOf(m);
 }
 
-function monthIndex(month) {
-  return MONTHS.indexOf(normalizeMonth(month));
-}
-
-function isVisitWithinScope(visit, yearValue, selectedMonth) {
-  if (!visit.yearNumber || visit.yearNumber !== yearValue) {
-    return false;
-  }
-
-  if (selectedMonth === 'all') {
-    return true;
-  }
-
-  const selectedMonthIndex = monthIndex(selectedMonth);
-  if (selectedMonthIndex < 0) {
-    return true;
-  }
-
-  return visit.monthNumber <= selectedMonthIndex;
-}
-
-function getScopedVisitCount(visits, yearValue, selectedMonth) {
-  return visits.filter((visit) => isVisitWithinScope(visit, yearValue, selectedMonth)).length;
-}
-
-function parseLabel(label) {
-  const text = String(label || '').trim();
-  if (!text) {
-    return { accountantName: 'Unknown', regionCode: 'Unknown' };
-  }
-
-  const parts = text.split(/\s*-\s*/);
-  if (parts.length > 1) {
-    return {
-      regionCode: parts[0].trim() || 'Unknown',
-      accountantName: parts.slice(1).join(' - ').trim() || parts[0].trim() || 'Unknown',
-    };
-  }
-
-  return {
-    regionCode: 'Unknown',
-    accountantName: text,
-  };
-}
-
-function parseCostCenterCode(code) {
-  const text = String(code || '').trim();
-  const match = text.match(/^(.*?)-?(\d+)$/);
-  if (!match) {
-    return null;
-  }
-  return {
-    prefix: match[1] || text,
-    number: Number(match[2]),
-    padLength: match[2].length,
-  };
-}
-
-function formatPercent(value) {
-  return `${Math.round(value || 0)}%`;
-}
-
-function buildAssignedCodes(prefixMap) {
-  const assigned = new Set();
-
-  prefixMap.forEach((prefixInfo) => {
-    if (prefixInfo.maxNumber > 0) {
-      const padLength = Math.max(prefixInfo.padLength || 3, String(prefixInfo.maxNumber).length, 3);
-      for (let number = 1; number <= prefixInfo.maxNumber; number += 1) {
-        assigned.add(`${prefixInfo.prefix}-${String(number).padStart(padLength, '0')}`);
-      }
-      return;
-    }
-
-    prefixInfo.rawCodes.forEach((code) => assigned.add(code));
-  });
-
-  return assigned;
-}
-
-function getComparableDate(record) {
-  const year = Number(record.year) || 0;
-  const month = monthIndex(record.month);
-  return { year, month };
-}
-
-function isEarlier(a, b) {
-  if (!b) return true;
-  if (a.year !== b.year) return a.year < b.year;
-  return a.month < b.month;
-}
-
-function buildAccountantGroups(records) {
-  const groups = new Map();
-
-  records.forEach((record, index) => {
-    const { accountantName, regionCode } = parseLabel(record.region);
-    const groupKey = `${regionCode}__${accountantName}`;
-    const code = String(record.pcfRef || '').trim();
-    const codeMeta = parseCostCenterCode(code);
-
-    if (!groups.has(groupKey)) {
-      groups.set(groupKey, {
-        key: groupKey,
-        accountantName,
-        regionCode,
-        records: [],
-        firstCompletedByCode: new Map(),
-        prefixMap: new Map(),
-      });
-    }
-
-    const group = groups.get(groupKey);
-    const normalizedRecord = {
-      ...record,
-      _index: index,
-      accountantName,
-      regionCode,
-      monthName: normalizeMonth(record.month),
-      monthNumber: monthIndex(record.month),
-      yearNumber: Number(record.year) || null,
-      code,
-      codeMeta,
-    };
-
-    group.records.push(normalizedRecord);
-
-    if (code) {
-      const current = group.firstCompletedByCode.get(code);
-      if (!current || isEarlier(getComparableDate(normalizedRecord), getComparableDate(current))) {
-        group.firstCompletedByCode.set(code, normalizedRecord);
-      }
-
-      if (codeMeta) {
-        const prefixInfo = group.prefixMap.get(codeMeta.prefix) || {
-          prefix: codeMeta.prefix,
-          maxNumber: 0,
-          padLength: codeMeta.padLength,
-          rawCodes: new Set(),
-        };
-        prefixInfo.maxNumber = Math.max(prefixInfo.maxNumber, codeMeta.number || 0);
-        prefixInfo.padLength = Math.max(prefixInfo.padLength || 0, codeMeta.padLength || 0);
-        prefixInfo.rawCodes.add(code);
-        group.prefixMap.set(codeMeta.prefix, prefixInfo);
-      } else {
-        const prefixInfo = group.prefixMap.get(code) || {
-          prefix: code,
-          maxNumber: 0,
-          padLength: 0,
-          rawCodes: new Set(),
-        };
-        prefixInfo.rawCodes.add(code);
-        group.prefixMap.set(code, prefixInfo);
-      }
-    }
-  });
-
-  return [...groups.values()].map((group) => {
-    const assignedCodes = buildAssignedCodes(group.prefixMap);
-    const completedCodes = new Set(group.firstCompletedByCode.keys());
-    const pendingCodes = [...assignedCodes].filter((code) => !completedCodes.has(code));
-    const completionPercent = assignedCodes.size ? (completedCodes.size / assignedCodes.size) * 100 : 0;
-
-    const visits = [...group.firstCompletedByCode.values()].sort((a, b) => {
-      if (a.yearNumber !== b.yearNumber) return a.yearNumber - b.yearNumber;
-      return a.monthNumber - b.monthNumber;
-    });
-
-    return {
-      ...group,
-      assignedCodes,
-      completedCodes,
-      pendingCodes,
-      assignedCount: assignedCodes.size,
-      completedCount: completedCodes.size,
-      remainingCount: Math.max(assignedCodes.size - completedCodes.size, 0),
-      completionPercent,
-      status: completionPercent > 80 ? 'green' : completionPercent >= 50 ? 'yellow' : 'red',
-      visits,
-    };
-  });
-}
-
-function StatCard({ icon: Icon, title, value, accent, tint }) {
-  const displayValue = typeof value === 'number' ? value.toLocaleString('en-US') : value;
-
+function StatCard({ icon: Icon, label, value, subtext, accent, tint }) {
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-300/30">
       <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: accent }} />
@@ -241,13 +53,11 @@ function StatCard({ icon: Icon, title, value, accent, tint }) {
       <div className="relative px-5 py-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="mb-3 min-h-[2rem] text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 leading-snug">{title}</p>
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="rounded-md bg-slate-50 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-slate-700 ring-1 ring-slate-200">KPI</span>
-              <p className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950 tabular-nums">
-                {displayValue}
-              </p>
-            </div>
+            <p className="mb-2 min-h-[1.5rem] text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 leading-snug">{label}</p>
+            <p className="whitespace-nowrap text-3xl font-black tracking-tight text-slate-950 tabular-nums">
+              {value}
+            </p>
+            {subtext && <p className="mt-1 text-xs font-semibold text-slate-400">{subtext}</p>}
           </div>
           <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-inner ring-1 transition-transform duration-300 group-hover:scale-105 ${tint}`}>
             <Icon className="h-5 w-5" strokeWidth={2.4} />
@@ -258,960 +68,940 @@ function StatCard({ icon: Icon, title, value, accent, tint }) {
   );
 }
 
-function StatusPill({ status }) {
-  const styles = {
-    green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    yellow: 'bg-amber-50 text-amber-700 border-amber-200',
-    red: 'bg-rose-50 text-rose-700 border-rose-200',
-  };
-
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${styles[status] || styles.red}`}>{status.toUpperCase()}</span>;
-}
-
 function SortIcon({ column, sortConfig }) {
   if (sortConfig.key !== column) return <ChevronDown className="h-3 w-3 opacity-30" />;
-  return sortConfig.dir === 'asc' ? <ChevronUp className="h-3.5 w-3.5 text-indigo-500" /> : <ChevronDown className="h-3.5 w-3.5 text-indigo-500" />;
+  return sortConfig.dir === 'asc'
+    ? <ChevronUp className="h-3.5 w-3.5 text-indigo-500" />
+    : <ChevronDown className="h-3.5 w-3.5 text-indigo-500" />;
 }
 
-function buildSeriesData(groups, selectedYear, scope) {
-  const yearValue = Number(selectedYear);
-  const relevantGroups = groups.filter((group) => {
-    if (scope.region !== 'all' && group.regionCode !== scope.region) return false;
-    if (scope.accountant !== 'all' && group.key !== scope.accountant) return false;
-    return true;
-  });
+const PAGE_SIZE = 15;
 
-  return MONTHS.map((monthName, monthNumber) => {
-    const row = { month: monthName };
-
-    relevantGroups.forEach((group) => {
-      const completedByMonth = [...group.firstCompletedByCode.values()].filter((visit) => {
-        // Only include visits from the selected year and up to the current month
-        if (!visit.yearNumber) return false;
-        if (visit.yearNumber !== yearValue) return false;
-        return visit.monthNumber <= monthNumber;
-      }).length;
-
-      row[group.key] = completedByMonth;
-      row[`${group.key}Assigned`] = group.assignedCount;
-      row[`${group.key}Remaining`] = Math.max(group.assignedCount - completedByMonth, 0);
-      row[`${group.key}Percent`] = group.assignedCount ? (completedByMonth / group.assignedCount) * 100 : 0;
-    });
-
-    return row;
-  });
-}
-
-function buildRegionStats(groups, selectedYear, selectedMonth) {
-  const yearValue = Number(selectedYear);
-  const regionMap = new Map();
-
-  groups.forEach((group) => {
-    if (!regionMap.has(group.regionCode)) {
-      regionMap.set(group.regionCode, {
-        region: group.regionCode,
-        assigned: 0,
-        completed: 0,
-        pending: 0,
-        groups: [],
-      });
-    }
-
-    const entry = regionMap.get(group.regionCode);
-    const completedThisPeriod = getScopedVisitCount([...group.firstCompletedByCode.values()], yearValue, selectedMonth);
-    entry.assigned += group.assignedCount;
-    entry.completed += completedThisPeriod;
-    entry.pending += Math.max(group.assignedCount - completedThisPeriod, 0);
-    entry.groups.push(group);
-  });
-
-  return [...regionMap.values()].map((entry) => ({
-    ...entry,
-    completionPercent: entry.assigned ? (entry.completed / entry.assigned) * 100 : 0,
-  }));
-}
-
-function buildInsights(groups, selectedYear, selectedMonth) {
-  if (!groups.length) return [];
-
-  const yearValue = Number(selectedYear);
-  const withProgress = groups.map((group) => {
-    const completed = getScopedVisitCount([...group.firstCompletedByCode.values()], yearValue, selectedMonth);
-    const percent = group.assignedCount ? (completed / group.assignedCount) * 100 : 0;
-    return { ...group, completed, percent };
-  });
-
-  const bestAccountant = [...withProgress].sort((a, b) => b.percent - a.percent)[0];
-  const lowestAccountant = [...withProgress].sort((a, b) => a.percent - b.percent)[0];
-
-  const regionStats = buildRegionStats(groups, selectedYear, selectedMonth).sort((a, b) => b.completionPercent - a.completionPercent);
-  const bestRegion = regionStats[0];
-  const lowestRegion = regionStats[regionStats.length - 1];
-
-  const monthlyActivity = MONTHS.map((monthName, monthNumber) => {
-    const count = withProgress.reduce((sum, group) => sum + [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber === monthNumber && isVisitWithinScope(visit, yearValue, selectedMonth)).length, 0);
-    return { month: monthName, count };
-  }).sort((a, b) => b.count - a.count)[0];
-
-  const fastestGrowth = withProgress
-    .map((group) => {
-      // build cumulative monthly series for the selected year only
-      const monthSeries = MONTHS.map((_, monthNumber) => [...group.firstCompletedByCode.values()].filter((visit) => visit.yearNumber === yearValue && visit.monthNumber <= monthNumber && isVisitWithinScope(visit, yearValue, selectedMonth)).length);
-      const delta = monthSeries.reduce((max, value, index) => {
-        if (index === 0) return max;
-        return Math.max(max, value - monthSeries[index - 1]);
-      }, 0);
-      return { ...group, delta };
-    })
-    .sort((a, b) => b.delta - a.delta)[0];
-
-  return [
-    { title: 'Best Performing Accountant', value: `${bestAccountant.accountantName} (${formatPercent(bestAccountant.percent)})`, type: 'success', icon: '🏆' },
-    { title: 'Lowest Performing Accountant', value: `${lowestAccountant.accountantName} (${formatPercent(lowestAccountant.percent)})`, type: lowestAccountant.percent === 0 ? 'error' : 'warning', icon: '⚠️' },
-    { title: 'Best Performing Region', value: `${bestRegion?.region || 'N/A'} (${formatPercent(bestRegion?.completionPercent)})`, type: 'success', icon: '📈' },
-    { title: 'Lowest Performing Region', value: `${lowestRegion?.region || 'N/A'} (${formatPercent(lowestRegion?.completionPercent)})`, type: 'warning', icon: '📉' },
-    { title: 'Most Active Month', value: monthlyActivity ? `${monthlyActivity.month} (${monthlyActivity.count})` : 'N/A', type: 'info', icon: '🗓️' },
-    { title: 'Fastest Growth', value: fastestGrowth ? `${fastestGrowth.accountantName} (+${fastestGrowth.delta})` : 'N/A', type: 'success', icon: '🚀' },
-  ];
-}
-
-function InsightCard({ insight }) {
-  const styles = {
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    warning: 'border-amber-200 bg-amber-50 text-amber-800',
-    error: 'border-rose-200 bg-rose-50 text-rose-800',
-    info: 'border-sky-200 bg-sky-50 text-sky-800',
-  };
-
-  return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${styles[insight.type] || styles.info}`}>
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] opacity-70">
-        <span>{insight.icon}</span>
-        <span>{insight.title}</span>
-      </div>
-      <p className="mt-3 text-sm font-semibold leading-6">{insight.value}</p>
-    </div>
-  );
-}
-
-function AccountantTooltip({ active, payload, label, chartMode }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xl">
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{label}</p>
-      <div className="mt-2 space-y-1 text-sm text-slate-700">
-        {payload.map((item) => (
-          <p key={item.dataKey}>
-            <span className="font-bold" style={{ color: item.color }}>{item.name}:</span>{' '}
-            {chartMode === 'percent'
-              ? `${Math.round(item.value)}%`
-              : `${item.value} completed / ${item.payload?.[`${item.dataKey}Assigned`] || 0} assigned / ${item.payload?.[`${item.dataKey}Remaining`] || 0} pending`}
-          </p>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DetailPanel({ group, selectedYear }) {
-  if (!group) return null;
-
-  const scopeYear = Number(selectedYear);
-  const scopeVisits = group.visits.filter((visit) => visit.yearNumber === scopeYear);
-  const pendingCodes = group.pendingCodes;
-
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-slate-100 px-6 py-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-400">Accountant Detail View</p>
-            <h3 className="mt-1 text-2xl font-black text-slate-900">{group.accountantName}</h3>
-            <p className="text-sm text-slate-500">Region code: {group.regionCode}</p>
-          </div>
-          <StatusPill status={group.status} />
-        </div>
-      </div>
-
-      <div className="grid gap-4 border-b border-slate-100 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Target} title="Assigned" value={group.assignedCount.toLocaleString()} tone={{ bg: 'bg-indigo-50', fg: 'text-indigo-600' }} />
-        <StatCard icon={CheckCircle2} title="Completed" value={Math.min(scopeVisits.length, group.assignedCount).toLocaleString()} tone={{ bg: 'bg-emerald-50', fg: 'text-emerald-600' }} />
-        <StatCard icon={ListChecks} title="Remaining" value={Math.max(group.assignedCount - scopeVisits.length, 0).toLocaleString()} tone={{ bg: 'bg-amber-50', fg: 'text-amber-600' }} />
-        <StatCard icon={TrendingUp} title="Completion" value={formatPercent(group.assignedCount ? (Math.min(scopeVisits.length, group.assignedCount) / group.assignedCount) * 100 : 0)} tone={{ bg: 'bg-sky-50', fg: 'text-sky-600' }} />
-      </div>
-
-      <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.35fr_0.9fr]">
-        <div>
-          <div className="mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-indigo-600" />
-            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Visit History</h4>
-          </div>
-
-          {scopeVisits.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-              No visits recorded for the selected year.
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Completed Month</th>
-                    <th className="px-4 py-3">Completed Year</th>
-                    <th className="px-4 py-3">Cost Center Name</th>
-                    <th className="px-4 py-3">Cost Center Code</th>
-                    <th className="px-4 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {scopeVisits.map((visit) => (
-                    <tr key={`${visit.code}-${visit.yearNumber}-${visit.monthNumber}`} className="hover:bg-slate-50/80">
-                      <td className="px-4 py-3 font-semibold text-slate-700">{visit.monthName}</td>
-                      <td className="px-4 py-3 text-slate-600">{visit.yearNumber}</td>
-                      <td className="px-4 py-3 text-slate-700">{visit.costCenterName || visit.code}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-slate-500">{visit.code}</td>
-                      <td className="px-4 py-3"><StatusPill status="green" /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div className="mb-4 flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-indigo-600" />
-            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Pending Cost Centers</h4>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            {pendingCodes.length === 0 ? (
-              <p className="text-sm text-slate-500">No pending cost centers. This accountant is fully completed based on the inferred assignment range.</p>
-            ) : (
-              <div className="space-y-2">
-                {pendingCodes.slice(0, 24).map((code) => (
-                  <div key={code} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-                    <span className="font-mono text-xs text-slate-600">{code}</span>
-                    <span className="text-[11px] font-bold text-amber-700">Pending</span>
-                  </div>
-                ))}
-                {pendingCodes.length > 24 && (
-                  <p className="text-xs font-semibold text-slate-500">+{pendingCodes.length - 24} more pending codes</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const isReconciled = (val) => {
+  if (!val) return false;
+  const s = String(val).trim().toLowerCase();
+  return /\d{4}-\d{2}-\d{2}/.test(s) || /\d{1,2}\/\d{1,2}\/\d{4}/.test(s) ||
+    ['completed', 'checked', 'reconciled', 'yes', 'done'].includes(s);
+};
 
 export default function AccountantProgressAnalytics({ refreshTrigger = 0 }) {
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [records, setRecords] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('all');
-  const [selectedRegion, setSelectedRegion] = useState('all');
-  const [selectedAccountant, setSelectedAccountant] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'progressAsOfPeriod', dir: 'desc' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [chartMode, setChartMode] = useState('count');
-  const [regionView, setRegionView] = useState('bar');
-  const [activeAccountantKey, setActiveAccountantKey] = useState('');
-  const [recordsPage, setRecordsPage] = useState(1);
-  const [activeTab, setActiveTab] = useState('performance'); // 'performance' | 'assignment'
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const response = await api.get('/accountants');
-      setRecords(response.data || []);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to load accountant data.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Filtering states
+  const [search, setSearch] = useState('');
+  const [filterRegion, setFilterRegion] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterAccountant, setFilterAccountant] = useState('');
+
+  // Selected accountant for detail view
+  const [selectedAccountantKey, setSelectedAccountantKey] = useState(null);
+
+  // Pagination & Sorting
+  const [sortConfig, setSortConfig] = useState({ key: 'year', dir: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Active Dashboard Tab ('overview' | 'regions' | 'table')
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    fetchData();
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const { data } = await api.get('/records');
+        setRecords(data || []);
+      } catch (err) {
+        setError(err.response?.data?.message || err.message || 'Failed to load records.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [refreshTrigger]);
 
-  const normalizedRecords = useMemo(() => records.map((record, index) => {
-    const parsed = parseLabel(record.region);
-    return {
-      ...record,
-      _index: index,
-      accountantName: parsed.accountantName,
-      regionCode: parsed.regionCode,
-      monthName: normalizeMonth(record.month),
-      monthNumber: monthIndex(record.month),
-      yearNumber: Number(record.year) || null,
-      code: String(record.pcfRef || '').trim(),
-      codeMeta: parseCostCenterCode(record.pcfRef),
-    };
-  }), [records]);
+  // Derive filter lists from ALL raw records to keep choices complete
+  const regions = useMemo(() => [...new Set(records.map(r => r.region).filter(Boolean))].sort(), [records]);
+  const years = useMemo(() => [...new Set(records.map(r => r.year).filter(Boolean))].sort((a, b) => b - a), [records]);
+  const months = useMemo(() => [...new Set(records.map(r => r.month).filter(Boolean))].sort((a, b) => monthIndex(a) - monthIndex(b)), [records]);
 
-  const groups = useMemo(() => buildAccountantGroups(normalizedRecords), [normalizedRecords]);
+  // Extract unique accountants
+  const uniqueAccountants = useMemo(() => {
+    const map = new Map();
+    records.forEach(r => {
+      const email = r.reportingAccountant?.email;
+      if (!email || !email.includes('@')) return;
+      const key = email.trim().toLowerCase();
+      const empNum = r.reportingAccountant?.empNumber || '—';
+      const name = r.reportingAccountant?.name || 'Unknown Accountant';
+      if (!map.has(key)) {
+        map.set(key, { empNumber: empNum, name, email: key, region: r.region });
+      }
+    });
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [records]);
 
-  const availableYears = useMemo(() => {
-    const years = [...new Set(normalizedRecords.map((record) => record.yearNumber).filter(Boolean))].sort((a, b) => b - a);
-    return years;
-  }, [normalizedRecords]);
-
-  useEffect(() => {
-    if (!selectedYear && availableYears.length > 0) {
-      setSelectedYear(String(availableYears[0]));
-    }
-  }, [availableYears, selectedYear]);
-
-  const filteredGroups = useMemo(() => {
-    const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    return groups
-      .map((group) => {
-        const scopeVisits = group.visits.filter((visit) => isVisitWithinScope(visit, yearValue, selectedMonth));
-        const completedAsOfPeriod = scopeVisits.length;
-        const assignedCount = group.assignedCount;
-        const remainingAsOfPeriod = Math.max(assignedCount - completedAsOfPeriod, 0);
-        const progressAsOfPeriod = assignedCount ? (completedAsOfPeriod / assignedCount) * 100 : 0;
-
-        return {
-          ...group,
-          scopeVisits,
-          completedAsOfPeriod,
-          remainingAsOfPeriod,
-          progressAsOfPeriod,
-          completedCount: completedAsOfPeriod,
-          remainingCount: remainingAsOfPeriod,
-          completionPercent: progressAsOfPeriod,
-          status: progressAsOfPeriod > 80 ? 'green' : progressAsOfPeriod >= 50 ? 'yellow' : 'red',
-        };
-      })
-      .filter((group) => {
-        if (selectedRegion !== 'all' && group.regionCode !== selectedRegion) return false;
-        if (selectedAccountant !== 'all' && group.key !== selectedAccountant) return false;
-        if (searchQuery.trim()) {
-          const query = searchQuery.trim().toLowerCase();
-          const haystack = `${group.accountantName} ${group.regionCode} ${group.assignedCount} ${group.completedCount}`.toLowerCase();
-          if (!haystack.includes(query)) return false;
-        }
-        return true;
+  // Filtered records
+  const filtered = useMemo(() => {
+    let data = records;
+    if (filterRegion) data = data.filter(r => r.region === filterRegion);
+    if (filterYear) data = data.filter(r => String(r.year) === filterYear);
+    if (filterMonth) data = data.filter(r => r.month === filterMonth);
+    if (filterAccountant) {
+      data = data.filter(r => {
+        const email = r.reportingAccountant?.email;
+        return email && email.trim().toLowerCase() === filterAccountant.trim().toLowerCase();
       });
-  }, [groups, selectedYear, selectedMonth, selectedRegion, selectedAccountant, searchQuery, availableYears]);
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      data = data.filter(r =>
+        [r.region, r.pcfRef, r.costCenterName, String(r.number ?? ''), String(r.year), r.month, r.reportingAccountant?.name]
+          .some(v => v && String(v).toLowerCase().includes(q))
+      );
+    }
+    return data;
+  }, [records, filterRegion, filterYear, filterMonth, filterAccountant, search]);
 
-  const sortedGroups = useMemo(() => {
-    const copy = [...filteredGroups];
+  // Stats derived from FILTERED records
+  const stats = useMemo(() => {
+    const assigned = filtered.length;
+    const completed = filtered.filter(r => isReconciled(r.checkedStatus)).length;
+    const pending = assigned - completed;
+    const pct = assigned ? Math.round((completed / assigned) * 100) : 0;
+
+    const activeAccs = new Set(
+      filtered.map(r => {
+        const email = r.reportingAccountant?.email;
+        return email && email.includes('@') ? email.trim().toLowerCase() : null;
+      }).filter(Boolean)
+    ).size;
+    const activeRegs = new Set(filtered.map(r => r.region).filter(Boolean)).size;
+
+    return {
+      assigned,
+      completed,
+      pending,
+      pct,
+      activeAccs,
+      activeRegs,
+    };
+  }, [filtered]);
+
+  // Sorted records for Table view
+  const sorted = useMemo(() => {
+    const copy = [...filtered];
     copy.sort((a, b) => {
-      const { key, dir } = sortConfig;
-      let av = a[key];
-      let bv = b[key];
-
-      if (typeof av === 'string') av = av.toLowerCase();
-      if (typeof bv === 'string') bv = bv.toLowerCase();
-
-      if (av < bv) return dir === 'asc' ? -1 : 1;
-      if (av > bv) return dir === 'asc' ? 1 : -1;
+      let av = a[sortConfig.key] ?? '';
+      let bv = b[sortConfig.key] ?? '';
+      if (sortConfig.key === 'year' || sortConfig.key === 'number') { av = Number(av); bv = Number(bv); }
+      else if (sortConfig.key === 'month') { av = monthIndex(av); bv = monthIndex(bv); }
+      else if (sortConfig.key === 'reportingAccountantName') {
+        av = a.reportingAccountant?.name || '';
+        bv = b.reportingAccountant?.name || '';
+      }
+      else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
+      if (av < bv) return sortConfig.dir === 'asc' ? -1 : 1;
+      if (av > bv) return sortConfig.dir === 'asc' ? 1 : -1;
       return 0;
     });
     return copy;
-  }, [filteredGroups, sortConfig]);
+  }, [filtered, sortConfig]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedGroups.length / 10));
-  const visibleGroups = sortedGroups.slice((currentPage - 1) * 10, currentPage * 10);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paginated = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const displayGroups = useMemo(() => {
-    const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    return filteredGroups.map((group) => {
-      const completedAsOfPeriod = group.visits.filter((visit) => isVisitWithinScope(visit, yearValue, selectedMonth)).length;
-      return {
-        ...group,
-        completedAsOfPeriod,
-        remainingAsOfPeriod: Math.max(group.assignedCount - completedAsOfPeriod, 0),
-        progressAsOfPeriod: group.assignedCount ? (completedAsOfPeriod / group.assignedCount) * 100 : 0,
-      };
+  // Time-series and Region grouping for charts
+  const monthlyData = useMemo(() => {
+    const groups = {};
+    filtered.forEach(r => {
+      const key = `${r.year} ${r.month}`;
+      if (!groups[key]) {
+        groups[key] = { name: key, year: r.year, month: r.month, Assigned: 0, Completed: 0 };
+      }
+      groups[key].Assigned += 1;
+      if (isReconciled(r.checkedStatus)) {
+        groups[key].Completed += 1;
+      }
     });
-  }, [filteredGroups, selectedYear, selectedMonth, availableYears]);
 
-  const summary = useMemo(() => {
-    const accountantCount = displayGroups.length;
-    const assigned = displayGroups.reduce((sum, group) => sum + group.assignedCount, 0);
-    const completed = displayGroups.reduce((sum, group) => sum + group.completedAsOfPeriod, 0);
-    const pending = Math.max(assigned - completed, 0);
-    const overall = assigned ? (completed / assigned) * 100 : 0;
-    return { accountantCount, assigned, completed, pending, overall };
-  }, [displayGroups]);
-
-  const chartData = useMemo(() => {
-    const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    const chartGroups = displayGroups.filter((group) => group.assignedCount > 0);
-    return buildSeriesData(chartGroups, yearValue, { region: selectedRegion, accountant: selectedAccountant });
-  }, [displayGroups, selectedYear, selectedRegion, selectedAccountant, availableYears]);
-
-  const regionStats = useMemo(() => {
-    const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    const stats = buildRegionStats(displayGroups, yearValue, selectedMonth).filter((region) => {
-      if (selectedRegion !== 'all' && region.region !== selectedRegion) return false;
-      return true;
+    return Object.values(groups).map(g => ({
+      ...g,
+      'Completion Rate': g.Assigned ? Math.round((g.Completed / g.Assigned) * 100) : 0
+    })).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return monthIndex(a.month) - monthIndex(b.month);
     });
-    return stats;
-  }, [displayGroups, selectedYear, selectedMonth, selectedRegion, availableYears]);
+  }, [filtered]);
 
-  const regionTrendData = useMemo(() => {
-    const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    const regions = regionStats.map((region) => region.region);
-
-    return MONTHS.map((monthName, monthNumber) => {
-      const row = { month: monthName };
-
-      regions.forEach((regionName) => {
-        row[regionName] = displayGroups
-          .filter((group) => group.regionCode === regionName)
-          .reduce((sum, group) => sum + group.visits.filter((visit) => {
-            if (!visit.yearNumber) return false;
-            return visit.yearNumber === yearValue && visit.monthNumber <= monthNumber;
-          }).length, 0);
-      });
-
-      return row;
+  const regionData = useMemo(() => {
+    const groups = {};
+    filtered.forEach(r => {
+      const key = r.region || 'No Region';
+      if (!groups[key]) {
+        groups[key] = { region: key, Assigned: 0, Completed: 0 };
+      }
+      groups[key].Assigned += 1;
+      if (isReconciled(r.checkedStatus)) {
+        groups[key].Completed += 1;
+      }
     });
-  }, [displayGroups, regionStats, selectedYear, availableYears]);
 
+    return Object.values(groups).map(g => ({
+      ...g,
+      'Completion Rate': g.Assigned ? Math.round((g.Completed / g.Assigned) * 100) : 0
+    })).sort((a, b) => b.Completed - a.Completed);
+  }, [filtered]);
+
+  // Performance Insights calculations
   const insights = useMemo(() => {
-    const yearValue = Number(selectedYear) || Number(availableYears[0]) || new Date().getFullYear();
-    return buildInsights(displayGroups, yearValue, selectedMonth);
-  }, [displayGroups, selectedYear, selectedMonth, availableYears]);
+    if (!filtered.length) return null;
 
+    // Group by Accountant
+    const accMap = {};
+    filtered.forEach(r => {
+      const email = r.reportingAccountant?.email;
+      if (!email || !email.includes('@')) return;
+      const key = email.trim().toLowerCase();
+      const name = r.reportingAccountant?.name || `Accountant ${r.reportingAccountant?.empNumber || ''}`;
+      if (!accMap[key]) {
+        accMap[key] = { name, assigned: 0, completed: 0 };
+      }
+      accMap[key].assigned += 1;
+      if (isReconciled(r.checkedStatus)) {
+        accMap[key].completed += 1;
+      }
+    });
 
-  const detailedRecords = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const accList = Object.values(accMap).map(a => ({
+      ...a,
+      rate: a.assigned ? (a.completed / a.assigned) * 100 : 0
+    }));
 
-    return [...normalizedRecords]
-      .filter((record) => {
-        if (selectedRegion !== 'all' && record.regionCode !== selectedRegion) return false;
-        if (selectedAccountant !== 'all') {
-          const accountant = groups.find((group) => group.key === selectedAccountant);
-          if (!accountant || record.regionCode !== accountant.regionCode || record.accountantName !== accountant.accountantName) return false;
-        }
-        if (query) {
-          const haystack = `${record.accountantName} ${record.regionCode} ${record.costCenterName || ''} ${record.code || ''} ${record.monthName} ${record.yearNumber}`.toLowerCase();
-          if (!haystack.includes(query)) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        if (a.yearNumber !== b.yearNumber) return b.yearNumber - a.yearNumber;
-        if (a.monthNumber !== b.monthNumber) return a.monthNumber - b.monthNumber;
-        return String(a.code).localeCompare(String(b.code));
-      });
-  }, [normalizedRecords, searchQuery, selectedRegion, selectedAccountant, groups]);
+    let bestAcc = '—';
+    let worstAcc = '—';
+    if (accList.length > 0) {
+      const sortedBest = [...accList].sort((a, b) => b.rate - a.rate || b.completed - a.completed);
+      bestAcc = `${sortedBest[0].name} (${Math.round(sortedBest[0].rate)}% completed)`;
 
-  const activeAccountant = useMemo(() => displayGroups.find((group) => group.key === activeAccountantKey) || displayGroups[0] || null, [displayGroups, activeAccountantKey]);
-
-  useEffect(() => {
-    if (!activeAccountantKey && displayGroups[0]) {
-      setActiveAccountantKey(displayGroups[0].key);
+      const sortedWorst = [...accList].sort((a, b) => a.rate - b.rate || a.completed - b.completed);
+      worstAcc = `${sortedWorst[0].name} (${Math.round(sortedWorst[0].rate)}% completed)`;
     }
-  }, [displayGroups, activeAccountantKey]);
+
+    // Group by Region
+    const regList = regionData.map(r => ({
+      name: r.region,
+      rate: r['Completion Rate'],
+      completed: r.Completed
+    }));
+
+    let bestReg = '—';
+    let worstReg = '—';
+    if (regList.length > 0) {
+      const sortedBestReg = [...regList].sort((a, b) => b.rate - a.rate || b.completed - a.completed);
+      bestReg = `${sortedBestReg[0].name} (${Math.round(sortedBestReg[0].rate)}%)`;
+
+      const sortedWorstReg = [...regList].sort((a, b) => a.rate - b.rate || a.completed - b.completed);
+      worstReg = `${sortedWorstReg[0].name} (${Math.round(sortedWorstReg[0].rate)}%)`;
+    }
+
+    // Group by Month-Year for most active
+    let mostActiveMonth = '—';
+    if (monthlyData.length > 0) {
+      const sortedMonths = [...monthlyData].sort((a, b) => b.Assigned - a.Assigned);
+      mostActiveMonth = `${sortedMonths[0].name} (${sortedMonths[0].Assigned} Assigned)`;
+    }
+
+    // Growth calculations
+    let growthPeriod = '—';
+    let maxGrowth = -Infinity;
+    for (let i = 1; i < monthlyData.length; i++) {
+      const prev = monthlyData[i - 1];
+      const curr = monthlyData[i];
+      const diff = curr['Completion Rate'] - prev['Completion Rate'];
+      if (diff > maxGrowth) {
+        maxGrowth = diff;
+        growthPeriod = `${prev.name} → ${curr.name} (+${Math.round(diff)}% Completion)`;
+      }
+    }
+
+    return {
+      bestAcc,
+      worstAcc,
+      bestReg,
+      worstReg,
+      mostActiveMonth,
+      growthPeriod: maxGrowth > 0 ? growthPeriod : 'Steady progress'
+    };
+  }, [filtered, monthlyData, regionData]);
+
+  // Selected Accountant Details
+  const selectedAccountantDetails = useMemo(() => {
+    if (!selectedAccountantKey) return null;
+    const accRecords = records.filter(r => {
+      const email = r.reportingAccountant?.email;
+      return email && email.trim().toLowerCase() === selectedAccountantKey.trim().toLowerCase();
+    });
+
+    if (accRecords.length === 0) return null;
+
+    const first = accRecords[0];
+    const name = first.reportingAccountant?.name || 'Unknown Accountant';
+    const email = first.reportingAccountant?.email || '—';
+    const empNumber = selectedAccountantKey;
+
+    const assigned = accRecords.length;
+    const completed = accRecords.filter(r => isReconciled(r.checkedStatus)).length;
+    const pending = assigned - completed;
+    const pct = assigned ? Math.round((completed / assigned) * 100) : 0;
+
+    const pendingCostCenters = accRecords.filter(r => !isReconciled(r.checkedStatus));
+
+    // History grouped by month/year
+    const history = accRecords.map(r => ({
+      year: r.year,
+      month: r.month,
+      pcfRef: r.pcfRef,
+      costCenterName: r.costCenterName,
+      region: r.region,
+      status: isReconciled(r.checkedStatus) ? 'Completed' : 'Pending',
+      checkedStatus: r.checkedStatus
+    })).sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year;
+      return monthIndex(b.month) - monthIndex(a.month);
+    });
+
+    return {
+      name,
+      email,
+      empNumber,
+      region: first.region || '—',
+      assigned,
+      completed,
+      pending,
+      pct,
+      pendingCostCenters,
+      history
+    };
+  }, [selectedAccountantKey, records]);
 
   const handleSort = (key) => {
-    setSortConfig((previous) => previous.key === key ? { key, dir: previous.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' });
+    setSortConfig(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' });
+    setCurrentPage(1);
+  };
+
+  const onFilter = (setter) => (e) => {
+    setter(e.target.value);
     setCurrentPage(1);
   };
 
   const clearFilters = () => {
-    setSelectedRegion('all');
-    setSelectedAccountant('all');
-    setSelectedMonth('all');
-    setSelectedMonth('all');
-    setSearchQuery('');
+    setFilterRegion('');
+    setFilterYear('');
+    setFilterMonth('');
+    setFilterAccountant('');
+    setSearch('');
     setCurrentPage(1);
   };
 
-  const hasFilters = selectedRegion !== 'all' || selectedAccountant !== 'all' || selectedMonth !== 'all' || searchQuery.trim();
-  const detailedTotalPages = Math.max(1, Math.ceil(detailedRecords.length / 12));
-  const detailedPageRecords = detailedRecords.slice((recordsPage - 1) * 12, recordsPage * 12);
+  const hasActiveFilters = filterRegion || filterYear || filterMonth || filterAccountant || search.trim();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-indigo-100 border-t-indigo-600" />
-          <p className="text-sm font-semibold text-slate-500">Loading accountant analytics…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        <div className="flex items-center gap-2 font-bold">
-          <AlertCircle className="h-4 w-4" />
-          Error
-        </div>
-        <p className="mt-1">{error}</p>
-      </div>
-    );
-  }
-
-  if (!records.length) {
-    return (
-      <div className="rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-          <Users className="h-8 w-8 text-slate-400" />
-        </div>
-        <h2 className="text-xl font-black text-slate-900">No accountant data yet</h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">Upload accountant visit records using the existing import flow to populate this dashboard.</p>
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-[3px] border-indigo-100 border-t-indigo-600" />
+        <p className="text-sm font-semibold text-slate-500">Loading records…</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* ── Header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
-        <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant Management</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900">Cost Center Visit Progress Analytics</h1>
-          <p className="mt-1 text-sm text-slate-500">Cumulative progress tracking from uploaded accountant visit data.</p>
+    <div className="space-y-6">
+      {error && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span className="font-bold">Error:</span> {error}
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-700">
-          <span className="h-2 w-2 rounded-full bg-indigo-500" />
-          {summary.accountantCount} accountant{summary.accountantCount !== 1 ? 's' : ''} tracked
+      )}
+
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/25">
+            <FileSpreadsheet className="h-6 w-6 text-white" strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Department Lead Analytics</p>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight">Accountant Performance Dashboard</h2>
+          </div>
+        </div>
+
+        {/* Tab Selection */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 gap-1">
+            {[
+              { id: 'overview', label: 'Overview & Charts' },
+              { id: 'regions', label: 'Region Analytics' },
+              { id: 'table', label: 'All Records Table' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-200 ${activeTab === tab.id
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ── Tab Switcher ── */}
-      <div className="flex rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
-        <button
-          onClick={() => setActiveTab('performance')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 ${activeTab === 'performance'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/10'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-        >
-          <TrendingUp className="h-4 w-4" />
-          Performance Analytics
-        </button>
-        <button
-          onClick={() => setActiveTab('assignment')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 ${activeTab === 'assignment'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/10'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-        >
-          <ListChecks className="h-4 w-4" />
-          Assignment & Records
-        </button>
+      {/* Filters Panel */}
+      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={onFilter(setSearch)}
+              placeholder="Search region, cost center, PCF, accountant…"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2.5 text-sm font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition"
+            />
+          </div>
+
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <select value={filterRegion} onChange={onFilter(setFilterRegion)}
+              className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition cursor-pointer">
+              <option value="">All Regions</option>
+              {regions.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
+          <div className="relative">
+            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <select value={filterYear} onChange={onFilter(setFilterYear)}
+              className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition cursor-pointer">
+              <option value="">All Years</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+
+          <div className="relative">
+            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <select value={filterMonth} onChange={onFilter(setFilterMonth)}
+              className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition cursor-pointer">
+              <option value="">All Months</option>
+              {months.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div className="relative">
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <select value={filterAccountant} onChange={onFilter(setFilterAccountant)}
+              className="appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition cursor-pointer">
+              <option value="">All Accountants</option>
+              {uniqueAccountants.map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
+            </select>
+          </div>
+
+          {hasActiveFilters && (
+            <button onClick={clearFilters}
+              className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-100 transition">
+              <X className="h-3.5 w-3.5" /> Clear
+            </button>
+          )}
+
+          <span className="ml-auto text-xs font-bold text-slate-400">
+            {filtered.length.toLocaleString()} record{filtered.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
 
-      {activeTab === 'performance' ? (
-        <>
-          {/* ── Stat cards ── */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
-            <StatCard icon={Users} title="Total Accountants" value={summary.accountantCount} accent={CARD_ACCENTS[0]} tint="bg-blue-50 text-blue-600 ring-blue-100" />
-            <StatCard icon={Target} title="Total Assigned Cost Centers" value={summary.assigned} accent={CARD_ACCENTS[1]} tint="bg-violet-50 text-violet-600 ring-violet-100" />
-            <StatCard icon={CheckCircle2} title="Total Completed Cost Centers" value={summary.completed} accent={CARD_ACCENTS[2]} tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
-            <StatCard icon={X} title="Total Pending Cost Centers" value={summary.pending} accent={CARD_ACCENTS[4]} tint="bg-amber-50 text-amber-600 ring-amber-100" />
-            <StatCard icon={TrendingUp} title="Overall Completion %" value={formatPercent(summary.overall)} accent="#0ea5e9" tint="bg-sky-50 text-sky-600 ring-sky-100" />
-          </div>
+      {/* Executive KPI Grid */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard icon={FileSpreadsheet} label="Assigned Centers" value={stats.assigned} accent="#4f46e5" tint="bg-indigo-50 text-indigo-600 ring-indigo-100" />
+        <StatCard icon={UserCheck} label="Completed" value={stats.completed} accent="#10b981" tint="bg-emerald-50 text-emerald-600 ring-emerald-100" />
+        <StatCard icon={Clock} label="Pending Work" value={stats.pending} accent="#f59e0b" tint="bg-amber-50 text-amber-600 ring-amber-100" />
+        <StatCard icon={Percent} label="Completion %" value={`${stats.pct}%`} accent="#06b6d4" tint="bg-cyan-50 text-cyan-600 ring-cyan-100" />
+        <StatCard icon={Users} label="Total Accountants" value={stats.activeAccs} accent="#a855f7" tint="bg-purple-50 text-purple-600 ring-purple-100" />
+        <StatCard icon={MapPin} label="Active Regions" value={stats.activeRegs} accent="#0d9488" tint="bg-teal-50 text-teal-600 ring-teal-100" />
+      </div>
 
-          {/* ── Insights ── */}
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {insights.map((insight) => <InsightCard key={insight.title} insight={insight} />)}
-          </div>
-
-          {/* ── Yearly Cumulative Progress Chart ── */}
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-              <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Main Visualization</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">Yearly cumulative progress line chart</h2>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
-                  <button onClick={() => setChartMode('count')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'count' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completed Count</button>
-                  <button onClick={() => setChartMode('percent')} className={`rounded-lg px-3 py-2 text-xs font-bold ${chartMode === 'percent' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Completion %</button>
+      {/* Accountant Detail View Overlay Modal */}
+      {selectedAccountantDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white font-black text-sm shadow-md">
+                  {selectedAccountantDetails.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">{selectedAccountantDetails.name}</h3>
+                  <p className="text-xs font-semibold text-slate-500">Employee ID: {selectedAccountantDetails.empNumber} • {selectedAccountantDetails.email}</p>
                 </div>
               </div>
+              <button
+                onClick={() => setSelectedAccountantKey(null)}
+                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-400 hover:text-slate-600 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <div className="grid gap-4 border-b border-slate-100 px-6 py-5 lg:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant</label>
-                <select value={selectedAccountant} onChange={(e) => { setSelectedAccountant(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-                  <option value="all">All Accountants</option>
-                  {groups.map((group) => <option key={group.key} value={group.key}>{group.accountantName}</option>)}
-                </select>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Accountant KPIs */}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Assigned</p>
+                  <p className="mt-1 text-xl font-black text-slate-900">{selectedAccountantDetails.assigned}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-50/50 px-4 py-3 border border-emerald-100">
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-500">Completed</p>
+                  <p className="mt-1 text-xl font-black text-emerald-900">{selectedAccountantDetails.completed}</p>
+                </div>
+                <div className="rounded-xl bg-amber-50/50 px-4 py-3 border border-amber-100">
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">Pending</p>
+                  <p className="mt-1 text-xl font-black text-amber-900">{selectedAccountantDetails.pending}</p>
+                </div>
+                <div className="rounded-xl bg-indigo-50/50 px-4 py-3 border border-indigo-100">
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-500">Completion %</p>
+                  <p className="mt-1 text-xl font-black text-indigo-900">{selectedAccountantDetails.pct}%</p>
+                </div>
               </div>
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region</label>
-                <select value={selectedRegion} onChange={(e) => { setSelectedRegion(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-                  <option value="all">All Regions</option>
-                  {[...new Set(groups.map((group) => group.regionCode))].sort().map((region) => <option key={region} value={region}>{region}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Year</label>
-                <select value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-                  {availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
-                </select>
-              </div>
-            </div>
 
-            <div className="px-4 py-4 sm:px-6">
-              <div className="mb-4 h-[360px] w-full">
-                <ResponsiveContainer>
-                  <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} domain={chartMode === 'percent' ? [0, 100] : ['auto', 'auto']} />
-                    <Tooltip content={(props) => <AccountantTooltip {...props} chartMode={chartMode} />} />
-                    <Legend />
-                    {displayGroups.filter((group) => group.assignedCount > 0).map((group, index) => (
-                      <Line
-                        key={group.key}
-                        type="monotone"
-                        dataKey={chartMode === 'percent' ? `${group.key}Percent` : group.key}
-                        name={group.accountantName}
-                        stroke={COLORS[index % COLORS.length]}
-                        strokeWidth={2.5}
-                        dot={{ r: 3 }}
-                        activeDot={{ r: 5 }}
-                      />
+              {/* Pending Cost Centers List */}
+              {selectedAccountantDetails.pendingCostCenters.length > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-4">
+                  <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-700 mb-3">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    Action Required: Pending Cost Centers ({selectedAccountantDetails.pendingCostCenters.length})
+                  </h4>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {selectedAccountantDetails.pendingCostCenters.map((cc, idx) => (
+                      <div key={idx} className="flex items-center justify-between rounded-lg bg-white border border-amber-100 px-3.5 py-2 text-xs shadow-sm">
+                        <div>
+                          <p className="font-bold text-slate-800">{cc.costCenterName}</p>
+                          <p className="text-[10px] font-semibold text-slate-400">{cc.pcfRef} • {cc.region}</p>
+                        </div>
+                        <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-100">
+                          {cc.month} {cc.year}
+                        </span>
+                      </div>
                     ))}
-                  </LineChart>
-                </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Historical Progress Timeline */}
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Assigned History & Timeline</h4>
+                <div className="rounded-xl border border-slate-150 bg-white overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Period</th>
+                          <th className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">PCF Ref</th>
+                          <th className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Cost Center</th>
+                          <th className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Region</th>
+                          <th className="px-4 py-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {selectedAccountantDetails.history.map((h, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            <td className="px-4 py-2.5 font-semibold text-slate-700">{h.month} {h.year}</td>
+                            <td className="px-4 py-2.5 font-bold text-slate-900">{h.pcfRef}</td>
+                            <td className="px-4 py-2.5 text-slate-600 max-w-[200px] truncate">{h.costCenterName}</td>
+                            <td className="px-4 py-2.5 text-slate-500">{h.region}</td>
+                            <td className="px-4 py-2.5">
+                              {h.status === 'Completed' ? (
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                  Reconciled
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
+                                  Pending
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* ── Accountant Progress Table ── */}
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-              <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant Progress Table</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">Sortable progress tracking</h2>
+            {/* Modal Footer */}
+            <div className="border-t border-slate-100 px-6 py-4 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setSelectedAccountantKey(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: OVERVIEW & CHARTS */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Insights & Quick Stats */}
+          {insights && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-4 border-b border-slate-100 pb-3">
+                <Award className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Performance Insights Panel</h3>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <select value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
-                  <option value="all">All Months</option>
-                  {MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}
-                </select>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search accountant or region" className="w-[260px] rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400" />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Award className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Best Performing Accountant</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800 truncate">{insights.bestAcc}</p>
+                  </div>
                 </div>
-                {hasFilters && (
-                  <button onClick={clearFilters} className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">
-                    <X className="h-3.5 w-3.5" /> Clear
-                  </button>
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600"><AlertCircle className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Lowest Performing Accountant</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800 truncate">{insights.worstAcc}</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-600"><MapPin className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Best Performing Region</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800 truncate">{insights.bestReg}</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600"><TrendingDown className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Lowest Performing Region</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800 truncate">{insights.worstReg}</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600"><Activity className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Most Active Month</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800 truncate">{insights.mostActiveMonth}</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 rounded-xl bg-slate-50 px-4 py-3 border border-slate-100">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600"><TrendingUp className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Highest Growth Period</p>
+                    <p className="mt-0.5 text-xs font-bold text-slate-800 truncate">{insights.growthPeriod}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Charts Section */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Chart 1: Monthly Progress Line Chart */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-1">Monthly Progress</h3>
+              <p className="text-xs font-semibold text-slate-400 mb-4">Assigned vs Completed cost centers chronologically</p>
+              <div className="h-[260px] w-full">
+                {monthlyData.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-slate-400 text-xs">No chart data available</div>
+                ) : (
+                  <ResponsiveContainer>
+                    <LineChart data={monthlyData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Line type="monotone" dataKey="Assigned" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="Completed" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 )}
               </div>
             </div>
 
+            {/* Chart 2: Region Performance Bar Chart */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-1">Region Performance</h3>
+              <p className="text-xs font-semibold text-slate-400 mb-4">Total completed cost centers by region</p>
+              <div className="h-[260px] w-full">
+                {regionData.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-slate-400 text-xs">No chart data available</div>
+                ) : (
+                  <ResponsiveContainer>
+                    <BarChart data={regionData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="region" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Bar dataKey="Completed" fill="#10b981" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Chart 3: Completion Percentage Trend */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-1">Completion Trend</h3>
+              <p className="text-xs font-semibold text-slate-400 mb-4">Reconciliation rate (%) trend over time</p>
+              <div className="h-[260px] w-full">
+                {monthlyData.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-slate-400 text-xs">No chart data available</div>
+                ) : (
+                  <ResponsiveContainer>
+                    <AreaChart data={monthlyData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} unit="%" />
+                      <Tooltip formatter={(value) => [`${value}%`, 'Completion Rate']} />
+                      <Area type="monotone" dataKey="Completion Rate" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#colorRate)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Chart 4: Assigned vs Completed Comparison */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-1">Workload Comparison</h3>
+              <p className="text-xs font-semibold text-slate-400 mb-4">Assigned vs Completed side-by-side by region</p>
+              <div className="h-[260px] w-full">
+                {regionData.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-slate-400 text-xs">No chart data available</div>
+                ) : (
+                  <ResponsiveContainer>
+                    <BarChart data={regionData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="region" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="Assigned" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Completed" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: REGION ANALYTICS */}
+      {activeTab === 'regions' && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4">Region Performance Rankings</h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {regionData.map((reg, idx) => {
+                let badgeColor = 'bg-slate-100 text-slate-700';
+                if (idx === 0) badgeColor = 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+                else if (idx === regionData.length - 1) badgeColor = 'bg-rose-100 text-rose-700 border border-rose-200';
+
+                return (
+                  <div key={reg.region} className="rounded-xl border border-slate-150 bg-slate-50/60 p-4 relative overflow-hidden shadow-sm flex flex-col justify-between">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ${badgeColor}`}>
+                          Rank #{idx + 1}
+                        </span>
+                        <h4 className="mt-1.5 text-sm font-black text-slate-900">{reg.region}</h4>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-black text-indigo-600">{reg['Completion Rate']}%</p>
+                        <p className="text-[10px] font-semibold text-slate-400">Completion</p>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mt-2 space-y-1">
+                      <div className="h-2 w-full rounded-full bg-slate-200">
+                        <div
+                          className="h-2 rounded-full bg-indigo-600 transition-all duration-500"
+                          style={{ width: `${reg['Completion Rate']}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                        <span>{reg.Completed} Completed</span>
+                        <span>{reg.Assigned} Assigned</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: TABLE & DETAIL TRIGGER */}
+      {activeTab === 'table' && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600">
+                <Users className="h-4 w-4 text-white" strokeWidth={1.8} />
+              </div>
+              <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Record List</p>
+            </div>
+            <span className="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">
+              Page {currentPage} of {totalPages}
+            </span>
+          </div>
+
+          {records.length === 0 ? (
+            <div className="flex flex-col items-center gap-4 py-20">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                <FileSpreadsheet className="h-8 w-8 text-slate-400" strokeWidth={1.5} />
+              </div>
+              <p className="text-base font-bold text-slate-700">No records found</p>
+              <p className="text-sm text-slate-400">Import a petty cash Excel file to populate this page.</p>
+            </div>
+          ) : sorted.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16">
+              <Search className="h-10 w-10 text-slate-300" />
+              <p className="text-sm font-semibold text-slate-500">No records match your filters.</p>
+              <button onClick={clearFilters} className="text-xs font-bold text-indigo-600 hover:underline">Clear all filters</button>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-[0.22em] text-slate-500">
+              <table className="w-full text-sm text-left whitespace-nowrap">
+                <thead className="bg-slate-50/80">
                   <tr>
                     {[
-                      { key: 'accountantName', label: 'Accountant Name' },
-                      { key: 'regionCode', label: 'Region' },
-                      { key: 'assignedCount', label: 'Assigned Count' },
-                      { key: 'completedAsOfPeriod', label: 'Completed Count' },
-                      { key: 'remainingAsOfPeriod', label: 'Remaining Count' },
-                      { key: 'progressAsOfPeriod', label: 'Completion %' },
-                    ].map((column) => (
-                      <th key={column.key} className="px-5 py-3">
-                        <button type="button" onClick={() => handleSort(column.key)} className="inline-flex items-center gap-1.5">
-                          <span>{column.label}</span>
-                          <SortIcon column={column.key} sortConfig={sortConfig} />
-                        </button>
+                      { key: 'region', label: 'Region' },
+                      { key: 'pcfRef', label: 'PCF Ref' },
+                      { key: 'costCenterName', label: 'Cost Center Name' },
+                      { key: 'reportingAccountantName', label: 'Reporting Accountant' },
+                      { key: 'year', label: 'Year' },
+                      { key: 'month', label: 'Month' },
+                      { key: 'checkedStatus', label: 'Status' },
+                    ].map(({ key, label }) => (
+                      <th key={key} onClick={() => handleSort(key)}
+                        className="px-5 py-3 border-b border-slate-100 cursor-pointer select-none">
+                        <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors">
+                          {label}
+                          <SortIcon column={key} sortConfig={sortConfig} />
+                        </div>
                       </th>
                     ))}
-                    <th className="px-5 py-3">Progress Bar</th>
-                    <th className="px-5 py-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {visibleGroups.map((group) => (
-                    <tr
-                      key={group.key}
-                      onClick={() => setActiveAccountantKey(group.key)}
-                      className={`cursor-pointer transition-colors ${activeAccountantKey === group.key ? 'bg-indigo-50/50 font-bold' : 'hover:bg-slate-50/80'}`}
-                    >
-                      <td className="px-5 py-4 font-semibold text-slate-900">{group.accountantName}</td>
-                      <td className="px-5 py-4 text-slate-600">{group.regionCode}</td>
-                      <td className="px-5 py-4 text-slate-700 tabular-nums">{group.assignedCount}</td>
-                      <td className="px-5 py-4 text-slate-700 tabular-nums">{group.completedAsOfPeriod}</td>
-                      <td className="px-5 py-4 text-slate-700 tabular-nums">{group.remainingAsOfPeriod}</td>
-                      <td className="px-5 py-4 text-slate-700 tabular-nums">{formatPercent(group.progressAsOfPeriod)}</td>
-                      <td className="px-5 py-4">
-                        <div className="h-2.5 w-full rounded-full bg-slate-100">
-                          <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(group.progressAsOfPeriod, 100)}%` }} />
-                        </div>
-                      </td>
-                      <td className="px-5 py-4"><StatusPill status={group.status} /></td>
-                    </tr>
-                  ))}
-                  {visibleGroups.length === 0 && (
-                    <tr>
-                      <td colSpan="8" className="px-5 py-12 text-center text-sm text-slate-500">No accountants match the current filters.</td>
-                    </tr>
-                  )}
+                  {paginated.map((r, i) => {
+                    const email = r.reportingAccountant?.email;
+                    const accountantKey = email && email.includes('@') ? email.trim().toLowerCase() : null;
+                    return (
+                      <tr key={r._id || i} className="hover:bg-indigo-50/40 transition-colors duration-100">
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex h-6 items-center rounded-full bg-indigo-100 px-2.5 text-[11px] font-bold text-indigo-700">
+                            {r.region || '—'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 font-bold text-slate-900">{r.pcfRef || '—'}</td>
+                        <td className="px-5 py-3.5 text-slate-600 max-w-[260px] truncate">{r.costCenterName || '—'}</td>
+                        <td className="px-5 py-3.5">
+                          {accountantKey ? (
+                            <button
+                              onClick={() => setSelectedAccountantKey(accountantKey)}
+                              className="text-left font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 group/btn"
+                            >
+                              <span>{r.reportingAccountant?.name || `Accountant ${accountantKey}`}</span>
+                              <ArrowRight className="h-3 w-3 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                            </button>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                            {r.year || '—'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                            {r.month || '—'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {isReconciled(r.checkedStatus) ? (
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                              Reconciled
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+          )}
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-                <p className="text-xs font-semibold text-slate-400">Page {currentPage} of {totalPages}</p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Prev</button>
-                  <button onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Next</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          {/* ── Unified Filters Panel (Tab 2) ── */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
-              <Filter className="h-5 w-5 text-indigo-600" />
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Search & Filters</h3>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
-                    placeholder="Search accountant or region..."
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region</label>
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => { setSelectedRegion(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
-                >
-                  <option value="all">All Regions</option>
-                  {[...new Set(groups.map((group) => group.regionCode))].sort().map((region) => (
-                    <option key={region} value={region}>{region}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accountant</label>
-                <select
-                  value={selectedAccountant}
-                  onChange={(e) => {
-                    setSelectedAccountant(e.target.value);
-                    setCurrentPage(1);
-                    setRecordsPage(1);
-                    if (e.target.value !== 'all') {
-                      setActiveAccountantKey(e.target.value);
-                    }
-                  }}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
-                >
-                  <option value="all">All Accountants</option>
-                  {groups.map((group) => (
-                    <option key={group.key} value={group.key}>{group.accountantName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Month</label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
-                >
-                  <option value="all">All Months</option>
-                  {MONTHS.map((month) => (
-                    <option key={month} value={month}>{month}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Year</label>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); setRecordsPage(1); }}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400"
-                >
-                  {availableYears.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {hasFilters && (
-              <div className="flex justify-end pt-4">
-                <button
-                  onClick={clearFilters}
-                  className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition"
-                >
-                  <X className="h-3.5 w-3.5" /> Clear All Filters
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+              <p className="text-xs font-semibold text-slate-400">
+                Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, sorted.length)} of {sorted.length.toLocaleString()}
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                  ← Prev
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+                  let page;
+                  if (totalPages <= 5) page = idx + 1;
+                  else if (currentPage <= 3) page = idx + 1;
+                  else if (currentPage >= totalPages - 2) page = totalPages - 4 + idx;
+                  else page = currentPage - 2 + idx;
+                  return (
+                    <button key={page} onClick={() => setCurrentPage(page)}
+                      className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${currentPage === page
+                        ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm'
+                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}>
+                      {page}
+                    </button>
+                  );
+                })}
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                  Next →
                 </button>
               </div>
-            )}
-          </div>
-
-          {/* ── Region Performance Summary Chart ── */}
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-              <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Region Performance Analytics</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">Regional summary and trend view</h2>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-1">
-                <button onClick={() => setRegionView('bar')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'bar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Bar</button>
-                <button onClick={() => setRegionView('pie')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'pie' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Pie</button>
-                <button onClick={() => setRegionView('trend')} className={`rounded-lg px-3 py-2 text-xs font-bold ${regionView === 'trend' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Trend</button>
-              </div>
             </div>
-
-            <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.25fr_0.9fr]">
-              <div className="h-[340px] w-full">
-                <ResponsiveContainer>
-                  {regionView === 'bar' ? (
-                    <BarChart data={regionStats} margin={{ top: 10, right: 15, left: 0, bottom: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="region" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="assigned" name="Assigned" fill="#94a3b8" radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="completed" name="Completed" fill="#2563eb" radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="pending" name="Pending" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  ) : regionView === 'pie' ? (
-                    <PieChart>
-                      <Tooltip />
-                      <Legend />
-                      <Pie data={[{ name: 'Completed', value: summary.completed }, { name: 'Pending', value: summary.pending }]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
-                        <Cell fill="#2563eb" />
-                        <Cell fill="#f59e0b" />
-                      </Pie>
-                    </PieChart>
-                  ) : (
-                    <LineChart data={regionTrendData} margin={{ top: 10, right: 15, left: 0, bottom: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend />
-                      {regionStats.map((region, index) => (
-                        <Line key={region.region} type="monotone" dataKey={region.region} name={region.region} stroke={COLORS[index % COLORS.length]} strokeWidth={2.5} dot={{ r: 3 }} />
-                      ))}
-                    </LineChart>
-                  )}
-                </ResponsiveContainer>
-              </div>
-
-              <div className="space-y-3">
-                {regionStats.map((region) => (
-                  <div key={region.region} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-bold text-slate-900">{region.region}</p>
-                        <p className="text-xs text-slate-500">Assigned {region.assigned} · Completed {region.completed} · Pending {region.pending}</p>
-                      </div>
-                      <StatusPill status={region.completionPercent > 80 ? 'green' : region.completionPercent >= 50 ? 'yellow' : 'red'} />
-                    </div>
-                    <div className="mt-3 h-2.5 rounded-full bg-white">
-                      <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${Math.min(region.completionPercent, 100)}%` }} />
-                    </div>
-                    <p className="mt-2 text-xs font-semibold text-slate-500">{formatPercent(region.completionPercent)} completion</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Detailed Excel visit records table ── */}
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-              <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Detailed Excel Sheet Table</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">All imported visit records</h2>
-                <p className="mt-1 text-sm text-slate-500">This is the full detailed table from the uploaded Excel sheet.</p>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
-                <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                {detailedRecords.length.toLocaleString()} row{detailedRecords.length !== 1 ? 's' : ''}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
-                <Filter className="h-4 w-4" />
-                Current filters apply to this table
-              </div>
-              <button onClick={() => setRecordsPage(1)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
-                Reset page
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase tracking-[0.22em] text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3">Accountant Name</th>
-                    <th className="px-5 py-3">Region</th>
-                    <th className="px-5 py-3">Cost Center Name</th>
-                    <th className="px-5 py-3">Cost Center Code</th>
-                    <th className="px-5 py-3">Completed Year</th>
-                    <th className="px-5 py-3">Completed Month</th>
-                    <th className="px-5 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {detailedPageRecords.map((record) => (
-                    <tr key={record._id || `${record.code}-${record.yearNumber}-${record.monthName}`} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-5 py-4 font-semibold text-slate-900">{record.accountantName}</td>
-                      <td className="px-5 py-4 text-slate-600">{record.regionCode}</td>
-                      <td className="px-5 py-4 text-slate-700">{record.costCenterName || record.code}</td>
-                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{record.code}</td>
-                      <td className="px-5 py-4 text-slate-700">{record.yearNumber || '—'}</td>
-                      <td className="px-5 py-4 text-slate-700">{record.monthName || '—'}</td>
-                      <td className="px-5 py-4"><StatusPill status="green" /></td>
-                    </tr>
-                  ))}
-                  {detailedPageRecords.length === 0 && (
-                    <tr>
-                      <td colSpan="7" className="px-5 py-12 text-center text-sm text-slate-500">No detailed records match the selected filters.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {detailedTotalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-                <p className="text-xs font-semibold text-slate-400">Page {recordsPage} of {detailedTotalPages}</p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setRecordsPage((page) => Math.max(1, page - 1))} disabled={recordsPage === 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Prev</button>
-                  <button onClick={() => setRecordsPage((page) => Math.min(detailedTotalPages, page + 1))} disabled={recordsPage === detailedTotalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">Next</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
+          )}
+        </div>
       )}
     </div>
   );

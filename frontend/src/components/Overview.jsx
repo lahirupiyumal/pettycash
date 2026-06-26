@@ -112,6 +112,7 @@ export default function Overview({ records = [] }) {
         acc.floatAmount += Number(record.floatAmount) || 0;
         acc.cashInHand += Number(record.cashInHand) || 0;
         acc.invoiceAmount += Number(record.invoiceAmount) || 0;
+        acc.total += Number(record.total) || 0;
         acc.utilization += Number(record.utilization) || 0;
         acc.variance += Number(record.variance) || 0;
         return acc;
@@ -120,6 +121,7 @@ export default function Overview({ records = [] }) {
         floatAmount: 0,
         cashInHand: 0,
         invoiceAmount: 0,
+        total: 0,
         utilization: 0,
         variance: 0,
       }
@@ -205,6 +207,52 @@ export default function Overview({ records = [] }) {
       .map((item) => item.label);
   }, [monthlyTrendData]);
 
+  // Float vs Expenses by Region
+  const floatVsExpensesByRegion = useMemo(() => {
+    const regionMap = new Map();
+
+    filteredRecords.forEach((record) => {
+      const region = String(record.region || '').trim();
+      if (!region || region.toLowerCase() === 'region') return;
+
+      if (!regionMap.has(region)) {
+        regionMap.set(region, {
+          region,
+          floatAmount: 0,
+          expenses: 0,
+        });
+      }
+
+      const row = regionMap.get(region);
+      row.floatAmount += Number(record.floatAmount) || 0;
+      row.expenses += Number(record.invoiceAmount) || 0;
+    });
+
+    return [...regionMap.values()].sort((a, b) => a.region.localeCompare(b.region));
+  }, [filteredRecords]);
+
+  // Variance Analysis by Region
+  const varianceByRegion = useMemo(() => {
+    const regionMap = new Map();
+
+    filteredRecords.forEach((record) => {
+      const region = String(record.region || '').trim();
+      if (!region || region.toLowerCase() === 'region') return;
+
+      if (!regionMap.has(region)) {
+        regionMap.set(region, {
+          region,
+          variance: 0,
+        });
+      }
+
+      const row = regionMap.get(region);
+      row.variance += Math.abs(Number(record.variance) || 0);
+    });
+
+    return [...regionMap.values()].sort((a, b) => a.region.localeCompare(b.region));
+  }, [filteredRecords]);
+
   const exportReady = filteredRecords.length > 0;
 
   function handleMonthlyCsvExport() {
@@ -237,8 +285,8 @@ export default function Overview({ records = [] }) {
   const cards = [
     { label: 'Total Float Value', value: totals.floatAmount, icon: Layers3, tint: 'bg-blue-50 text-blue-600 ring-blue-100' },
     { label: 'Total Cash In Hand', value: totals.cashInHand, icon: Sparkles, tint: 'bg-teal-50 text-teal-600 ring-teal-100' },
-    { label: 'Total Invoice Amount', value: totals.invoiceAmount, icon: TrendingUp, tint: 'bg-violet-50 text-violet-600 ring-violet-100' },
-    { label: 'Total Expenses', value: totals.utilization, icon: PieChartIcon, tint: 'bg-amber-50 text-amber-600 ring-amber-100' },
+    { label: 'Total Expenses', value: totals.invoiceAmount, icon: TrendingUp, tint: 'bg-violet-50 text-violet-600 ring-violet-100' },
+    { label: 'Total', value: totals.total, icon: PieChartIcon, tint: 'bg-teal-50 text-teal-600 ring-teal-100' },
     { label: 'Total Variance', value: totals.variance, icon: PieChartIcon, tint: 'bg-red-50 text-red-600 ring-red-100' },
   ];
 
@@ -305,23 +353,23 @@ export default function Overview({ records = [] }) {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 bg-white px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-6 w-1.5 rounded-full bg-blue-500" />
+              <div className="h-6 w-1.5 rounded-full bg-purple-500" />
               <div>
-                <h3 className="text-lg font-black tracking-tight text-slate-900">Regional Float vs Utilization</h3>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">Float vs Expenses by Region</h3>
               </div>
             </div>
             <div className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
-              {regionTrendData.length} Regions
+              {floatVsExpensesByRegion.length} Regions
             </div>
           </div>
           <div className="p-4 sm:p-5">
-          {regionTrendData.length === 0 ? (
+          {floatVsExpensesByRegion.length === 0 ? (
             <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
-              <p className="text-sm font-semibold text-slate-500">No trend data available.</p>
+              <p className="text-sm font-semibold text-slate-500">No regional data available.</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={regionTrendData} margin={{ top: 12, right: 8, left: 0, bottom: 48 }} barCategoryGap="28%">
+              <BarChart data={floatVsExpensesByRegion} margin={{ top: 12, right: 8, left: 0, bottom: 48 }} barCategoryGap="28%">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
                   dataKey="region"
@@ -349,8 +397,61 @@ export default function Overview({ records = [] }) {
                   labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
                 />
                 <Legend wrapperStyle={{ paddingTop: '12px', fontWeight: 700 }} iconType="circle" />
-                <Bar dataKey="floatAmount" name="Float Amount" fill="#3b82f6" radius={[5, 5, 0, 0]} maxBarSize={56} />
-                <Bar dataKey="utilization" name="Utilization" fill="#f59e0b" radius={[5, 5, 0, 0]} maxBarSize={56} />
+                <Bar dataKey="floatAmount" name="Cash Float Amount" fill="#9333ea" radius={[5, 5, 0, 0]} maxBarSize={56} />
+                <Bar dataKey="expenses" name="Expenses Made" fill="#f97316" radius={[5, 5, 0, 0]} maxBarSize={56} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 bg-white px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-1.5 rounded-full bg-red-500" />
+              <div>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">Variance Analysis by Region</h3>
+              </div>
+            </div>
+            <div className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200">
+              {varianceByRegion.length} Regions
+            </div>
+          </div>
+          <div className="p-4 sm:p-5">
+          {varianceByRegion.length === 0 ? (
+            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+              <p className="text-sm font-semibold text-slate-500">No variance data available.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={varianceByRegion} margin={{ top: 12, right: 8, left: 0, bottom: 48 }} barCategoryGap="28%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis
+                  dataKey="region"
+                  angle={-28}
+                  textAnchor="end"
+                  interval={0}
+                  height={78}
+                  tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  dy={5}
+                />
+                <YAxis tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${Math.round(value / 1000)}k`} width={56} />
+                <Tooltip
+                  formatter={(value) => formatNumber(value)}
+                  contentStyle={{
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                  itemStyle={{ padding: '2px 0', fontWeight: 600 }}
+                  labelStyle={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}
+                />
+                <Bar dataKey="variance" name="Total Variance" fill="#ef4444" radius={[5, 5, 0, 0]} maxBarSize={56} />
               </BarChart>
             </ResponsiveContainer>
           )}

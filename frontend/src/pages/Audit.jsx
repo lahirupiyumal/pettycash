@@ -194,34 +194,34 @@ export default function Audit() {
     const uniqueUsers = summary.length;
 
     return [
-      { 
-        label: 'Total Sessions', 
-        value: totalSessions, 
-        icon: Activity, 
+      {
+        label: 'Total Sessions',
+        value: totalSessions,
+        icon: Activity,
         color: 'from-blue-600 to-indigo-700',
         shadow: 'shadow-blue-200/50',
         subtext: 'User login sessions'
       },
-      { 
-        label: 'Total Logins', 
-        value: totalLogins, 
-        icon: LogIn, 
+      {
+        label: 'Total Logins',
+        value: totalLogins,
+        icon: LogIn,
         color: 'from-emerald-500 to-teal-600',
         shadow: 'shadow-emerald-200/50',
         subtext: 'Successful logins'
       },
-      { 
-        label: 'Total Actions', 
-        value: totalActions, 
-        icon: Activity, 
+      {
+        label: 'Total Actions',
+        value: totalActions,
+        icon: Activity,
         color: 'from-purple-500 to-violet-600',
         shadow: 'shadow-purple-200/50',
         subtext: 'All recorded actions'
       },
-      { 
-        label: 'Active Users', 
-        value: uniqueUsers, 
-        icon: Users, 
+      {
+        label: 'Active Users',
+        value: uniqueUsers,
+        icon: Users,
         color: 'from-amber-500 to-orange-600',
         shadow: 'shadow-amber-200/50',
         subtext: 'Unique active users'
@@ -280,11 +280,10 @@ export default function Audit() {
                 setActiveTab('sessions');
                 setPagination({ ...pagination, page: 1 });
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                activeTab === 'sessions'
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'sessions'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               User Sessions
             </button>
@@ -293,21 +292,19 @@ export default function Audit() {
                 setActiveTab('logs');
                 setPagination({ ...pagination, page: 1 });
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                activeTab === 'logs'
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'logs'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               Activity Logs
             </button>
             <button
               onClick={() => setActiveTab('summary')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                activeTab === 'summary'
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'summary'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               Summary
             </button>
@@ -413,11 +410,10 @@ export default function Audit() {
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md ${
-                          session.userRole === 'admin' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
-                          session.userRole === 'accountant' ? 'bg-gradient-to-br from-purple-500 to-violet-600' :
-                          'bg-gradient-to-br from-slate-500 to-slate-600'
-                        }`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md ${session.userRole === 'admin' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
+                            session.userRole === 'accountant' ? 'bg-gradient-to-br from-purple-500 to-violet-600' :
+                              'bg-gradient-to-br from-slate-500 to-slate-600'
+                          }`}>
                           {session.userName.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -532,11 +528,10 @@ export default function Audit() {
                         <tr key={log._id} className="hover:bg-slate-50/80 transition-colors group">
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-black shadow-sm ${
-                                log.userRole === 'admin' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
-                                log.userRole === 'accountant' ? 'bg-gradient-to-br from-purple-500 to-violet-600' :
-                                'bg-gradient-to-br from-slate-500 to-slate-600'
-                              }`}>
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-black shadow-sm ${log.userRole === 'admin' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
+                                  log.userRole === 'accountant' ? 'bg-gradient-to-br from-purple-500 to-violet-600' :
+                                    'bg-gradient-to-br from-slate-500 to-slate-600'
+                                }`}>
                                 {log.userName.charAt(0).toUpperCase()}
                               </div>
                               <div>
@@ -554,9 +549,8 @@ export default function Audit() {
                             </div>
                           </td>
                           <td className="py-4 px-4">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                              ACTION_TYPE_COLORS[log.actionType] || ACTION_TYPE_COLORS.other
-                            }`}>
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${ACTION_TYPE_COLORS[log.actionType] || ACTION_TYPE_COLORS.other
+                              }`}>
                               {log.actionType}
                             </span>
                           </td>
@@ -626,11 +620,10 @@ export default function Audit() {
                       <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black ${
-                              item.userRole === 'admin' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
-                              item.userRole === 'accountant' ? 'bg-gradient-to-br from-purple-500 to-violet-600' :
-                              'bg-gradient-to-br from-slate-500 to-slate-600'
-                            }`}>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black ${item.userRole === 'admin' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
+                                item.userRole === 'accountant' ? 'bg-gradient-to-br from-purple-500 to-violet-600' :
+                                  'bg-gradient-to-br from-slate-500 to-slate-600'
+                              }`}>
                               {item.userName ? item.userName.charAt(0).toUpperCase() : '?'}
                             </div>
                             <span className="text-sm font-bold text-slate-900">

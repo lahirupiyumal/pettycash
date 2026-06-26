@@ -6,23 +6,149 @@ const User = require('../models/User');
 const { createAuditLog } = require('../middleware/audit');
 const XLSX = require('xlsx');
 
+const normalizeIdentityValue = (value) => {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'number') return Number.isNaN(value) ? '' : value;
+  return String(value).trim().toLowerCase();
+};
+
+const exactExcelValue = (value) => {
+  if (value === undefined) return null;
+  if (value instanceof Date) return value.toISOString();
+  return value;
+};
+
+const getReconciliationValue = (record) => {
+  if (record.dateOfReconciliation !== undefined && record.dateOfReconciliation !== null) {
+    return record.dateOfReconciliation;
+  }
+  return record.checkedStatus;
+};
+
+const buildRecordIdentityKey = (record) => JSON.stringify([
+  normalizeIdentityValue(record.region),
+  normalizeIdentityValue(record.pcfRef),
+  normalizeIdentityValue(record.year),
+  normalizeIdentityValue(record.month),
+]);
+
+const buildImportedExcelRowKey = (record) => JSON.stringify([
+  exactExcelValue(record.region),
+  exactExcelValue(record.pcfRef),
+  exactExcelValue(record.costCenterName),
+  exactExcelValue(record.number),
+  exactExcelValue(record.payingOfficer?.email),
+  exactExcelValue(record.supervisingOfficer?.name),
+  exactExcelValue(record.supervisingOfficer?.email),
+  exactExcelValue(record.supervisingOfficer?.empNumber),
+  exactExcelValue(record.reportingAccountant?.name),
+  exactExcelValue(record.reportingAccountant?.email),
+  exactExcelValue(record.reportingAccountant?.empNumber),
+  exactExcelValue(record.payingOfficer?.name),
+  exactExcelValue(record.payingOfficer?.empNumber),
+  exactExcelValue(getReconciliationValue(record)),
+  exactExcelValue(record.floatAmount),
+  exactExcelValue(record.cashInHand),
+  exactExcelValue(record.invoiceAmount),
+  exactExcelValue(record.total),
+  exactExcelValue(record.variance),
+]);
+
+const getRecordIdentityFilter = (record, userId) => ({
+  createdBy: userId,
+  region: record.region,
+  pcfRef: record.pcfRef,
+  year: record.year,
+  month: record.month,
+});
+
+const CASE_INSENSITIVE_COLLATION = { locale: 'en', strength: 2 };
+const LEGACY_IDENTITY_INDEX_KEY = { createdBy: 1, region: 1, pcfRef: 1, year: 1, month: 1 };
+const RECORD_LOOKUP_FIELDS = 'region pcfRef costCenterName number payingOfficer supervisingOfficer reportingAccountant year month floatAmount cashInHand invoiceAmount total variance checkedStatus dateOfReconciliation importFileId';
+const IDENTITY_LOOKUP_BATCH_SIZE = 500;
+
+let legacyIdentityIndexDropPromise = null;
+
+const hasSameIndexKey = (actualKey, expectedKey) => {
+  const actualEntries = Object.entries(actualKey || {});
+  const expectedEntries = Object.entries(expectedKey);
+  return actualEntries.length === expectedEntries.length
+    && expectedEntries.every(([key, value]) => actualKey[key] === value);
+};
+
+const dropLegacyIdentityUniqueIndex = async () => {
+  if (!legacyIdentityIndexDropPromise) {
+    legacyIdentityIndexDropPromise = (async () => {
+      const indexes = await PettyCashRecord.collection.indexes();
+      const legacyIndex = indexes.find(index =>
+        index.unique && hasSameIndexKey(index.key, LEGACY_IDENTITY_INDEX_KEY)
+      );
+
+      if (legacyIndex) {
+        await PettyCashRecord.collection.dropIndex(legacyIndex.name);
+      }
+    })().catch((err) => {
+      legacyIdentityIndexDropPromise = null;
+      if (err?.codeName === 'IndexNotFound' || err?.code === 27) return;
+      throw err;
+    });
+  }
+
+  return legacyIdentityIndexDropPromise;
+};
+
+const fetchExistingRecordsForIdentities = async (userId, identityFilters) => {
+  if (identityFilters.length === 0) return [];
+
+  const queries = [];
+  for (let i = 0; i < identityFilters.length; i += IDENTITY_LOOKUP_BATCH_SIZE) {
+    const batch = identityFilters.slice(i, i + IDENTITY_LOOKUP_BATCH_SIZE);
+    queries.push(
+      PettyCashRecord.find({
+        createdBy: userId,
+        $or: batch.map(({ createdBy, ...filter }) => filter),
+      })
+        .select(RECORD_LOOKUP_FIELDS)
+        .collation(CASE_INSENSITIVE_COLLATION)
+        .lean()
+    );
+  }
+
+  const batches = await Promise.all(queries);
+  return batches.flat();
+};
+
 const processImportRecords = async (records, fileName, userId) => {
   if (!records || !Array.isArray(records) || records.length === 0) {
     throw new Error('Invalid records array');
   }
 
-  // Step 1: Deduplicate rows within the uploaded file itself
+  // Step 1: Deduplicate exact Excel rows within the uploaded file itself.
   const uniqueIncoming = [];
-  const seenKeys = new Set();
+  const seenExcelRows = new Set();
   for (const r of records) {
-    const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
-    if (!seenKeys.has(key)) {
-      seenKeys.add(key);
+    const key = buildImportedExcelRowKey(r);
+    if (!seenExcelRows.has(key)) {
+      seenExcelRows.add(key);
       uniqueIncoming.push(r);
     }
   }
 
   const isGoogleDriveSync = fileName === 'GoogleDrive_PettyCash.xlsx';
+  const identityFilters = [
+    ...new Map(
+      uniqueIncoming.map(record => [
+        buildRecordIdentityKey(record),
+        getRecordIdentityFilter(record, userId),
+      ])
+    ).values(),
+  ];
+
+  const existingDocs = await fetchExistingRecordsForIdentities(userId, identityFilters);
+
+  const existingExcelRows = new Set(existingDocs.map(buildImportedExcelRowKey));
+  const recordsToInsert = uniqueIncoming.filter(record => !existingExcelRows.has(buildImportedExcelRowKey(record)));
+  const skipped = records.length - recordsToInsert.length;
 
   if (isGoogleDriveSync) {
     let importFile = await ImportedFile.findOne({
@@ -40,39 +166,44 @@ const processImportRecords = async (records, fileName, userId) => {
       });
     }
 
-    const ops = uniqueIncoming.map(record => ({
-      updateOne: {
-        filter: {
-          createdBy: userId,
-          region: record.region,
-          pcfRef: record.pcfRef,
-          year: record.year,
-          month: record.month
+    if (recordsToInsert.length === 0) {
+      return {
+        message: `No petty cash changes found. ${skipped} duplicate record(s) were skipped.`,
+        count: 0,
+        skipped,
+        file: {
+          id: importFile._id,
+          fileName: importFile.fileName,
         },
-        update: {
-          $set: {
-            ...record,
-            createdBy: userId,
-            sourceFileName: fileName,
-            importFileId: importFile._id
-          }
-        },
-        upsert: true
-      }
+      };
+    }
+
+    await dropLegacyIdentityUniqueIndex();
+
+    const recordsToCreate = recordsToInsert.map(record => ({
+      ...record,
+      createdBy: userId,
+      sourceFileName: fileName,
+      importFileId: importFile._id
     }));
 
-    await PettyCashRecord.bulkWrite(ops);
+    const insertedDocs = await PettyCashRecord.insertMany(recordsToCreate, { ordered: false });
+
+    const recordCount = await PettyCashRecord.countDocuments({
+      createdBy: userId,
+      importFileId: importFile._id,
+    });
 
     importFile = await ImportedFile.findByIdAndUpdate(
       importFile._id,
-      { recordCount: uniqueIncoming.length },
+      { recordCount },
       { new: true }
     );
 
     return {
-      message: `Successfully synchronized ${uniqueIncoming.length} record(s) from Google Drive.`,
-      count: uniqueIncoming.length,
-      skipped: 0,
+      message: `Successfully synchronized ${insertedDocs.length} changed record(s) from Google Drive.${skipped > 0 ? ` ${skipped} duplicate(s) were skipped.` : ''}`,
+      count: insertedDocs.length,
+      skipped,
       file: {
         id: importFile._id,
         fileName: importFile.fileName,
@@ -80,34 +211,9 @@ const processImportRecords = async (records, fileName, userId) => {
     };
   }
 
-  // Step 2: Find records that already exist in the DB for this user
-  const existingDocs = await PettyCashRecord.find({
-    createdBy: userId,
-    $or: uniqueIncoming.map(r => ({
-      region: r.region,
-      pcfRef: r.pcfRef,
-      year: r.year,
-      month: r.month,
-    })),
-  }).select('region pcfRef year month');
-
-  const existingKeys = new Set(
-    existingDocs.map(r =>
-      `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`
-    )
-  );
-
-  // Step 3: Keep only records that do NOT exist in the DB
-  const newRecords = uniqueIncoming.filter(r => {
-    const key = `${String(r.region || '').trim().toLowerCase()}-${String(r.pcfRef || '').trim().toLowerCase()}-${r.year}-${String(r.month || '').trim().toLowerCase()}`;
-    return !existingKeys.has(key);
-  });
-
-  const skipped = records.length - newRecords.length;
-
   let importFile = null;
 
-  if (newRecords.length === 0) {
+  if (recordsToInsert.length === 0) {
     return {
       message: `No new records imported. All ${skipped} record(s) already exist in the system.`,
       count: 0,
@@ -124,42 +230,27 @@ const processImportRecords = async (records, fileName, userId) => {
     });
   }
 
-  const recordsToInsert = newRecords.map(record => ({
+  await dropLegacyIdentityUniqueIndex();
+
+  const recordsToCreate = recordsToInsert.map(record => ({
     ...record,
     createdBy: userId,
     sourceFileName: fileName || 'Imported Excel File',
     importFileId: importFile._id,
   }));
 
-  let insertedCount = 0;
-  let dbSkipped = 0;
+  const insertedDocs = await PettyCashRecord.insertMany(recordsToCreate, { ordered: false });
 
-  try {
-    // ordered: false → MongoDB continues on duplicate key errors instead of stopping
-    const result = await PettyCashRecord.insertMany(recordsToInsert, { ordered: false });
-    insertedCount = result.length;
-  } catch (bulkErr) {
-    // Code 11000 = duplicate key — some records inserted, some skipped
-    if (bulkErr.code === 11000 || bulkErr.name === 'BulkWriteError') {
-      insertedCount = bulkErr.result?.nInserted ?? 0;
-      dbSkipped = recordsToInsert.length - insertedCount;
-    } else {
-      throw bulkErr; // rethrow unexpected errors
-    }
-  }
-
-  const totalSkipped = skipped + dbSkipped;
-  
   importFile = await ImportedFile.findByIdAndUpdate(
-    importFile._id, 
-    { $inc: { recordCount: insertedCount } },
+    importFile._id,
+    { $inc: { recordCount: insertedDocs.length } },
     { new: true }
   );
 
   return {
-    message: `Successfully imported ${insertedCount} record(s).${totalSkipped > 0 ? ` ${totalSkipped} duplicate(s) were skipped.` : ''}`,
-    count: insertedCount,
-    skipped: totalSkipped,
+    message: `Successfully imported ${insertedDocs.length} record(s).${skipped > 0 ? ` ${skipped} duplicate(s) were skipped.` : ''}`,
+    count: insertedDocs.length,
+    skipped,
     file: {
       id: importFile._id,
       fileName: importFile.fileName,
@@ -207,10 +298,95 @@ const syncPettyCashForUser = async (userId) => {
     return isNaN(parsed) ? null : parsed;
   };
 
+  const parseDateOfReconciliation = (val) => {
+    if (!val) {
+      const d = new Date();
+      return {
+        dateStr: '',
+        year: d.getFullYear(),
+        month: d.toLocaleString('en-US', { month: 'long' })
+      };
+    }
+
+    if (val instanceof Date) {
+      return {
+        dateStr: val.toISOString().split('T')[0],
+        year: val.getFullYear(),
+        month: val.toLocaleString('en-US', { month: 'long' })
+      };
+    }
+
+    const str = String(val).trim();
+    
+    // Check if Excel serial number
+    const numVal = Number(str);
+    if (!isNaN(numVal) && numVal > 30000 && numVal < 60000) {
+      const dateObj = new Date((numVal - 25569) * 86400 * 1000);
+      if (!isNaN(dateObj.getTime())) {
+        return {
+          dateStr: dateObj.toISOString().split('T')[0],
+          year: dateObj.getFullYear(),
+          month: dateObj.toLocaleString('en-US', { month: 'long' })
+        };
+      }
+    }
+
+    let parts = str.split(/[-/.]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        const year = parseInt(parts[0], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(year, monthIdx, day);
+        if (!isNaN(d.getTime())) {
+          return {
+            dateStr: str,
+            year,
+            month: d.toLocaleString('en-US', { month: 'long' })
+          };
+        }
+      } else {
+        const day = parseInt(parts[0], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const d = new Date(year, monthIdx, day);
+        if (!isNaN(d.getTime())) {
+          return {
+            dateStr: str,
+            year,
+            month: d.toLocaleString('en-US', { month: 'long' })
+          };
+        }
+      }
+    }
+
+    const parsedDate = new Date(str);
+    if (!isNaN(parsedDate.getTime())) {
+      return {
+        dateStr: str,
+        year: parsedDate.getFullYear(),
+        month: parsedDate.toLocaleString('en-US', { month: 'long' })
+      };
+    }
+
+    const d = new Date();
+    return {
+      dateStr: str,
+      year: d.getFullYear(),
+      month: d.toLocaleString('en-US', { month: 'long' })
+    };
+  };
+
   const records = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length === 0 || !row[0]) continue;
+
+    const rawReconciliationDate = row[13];
+    const { dateStr, year, month } = parseDateOfReconciliation(rawReconciliationDate);
+    const floatVal = parseNum(row[14]);
+    const expensesVal = parseNum(row[16]);
+    const varianceVal = parseNum(row[18]);
 
     records.push({
       region: row[0],
@@ -218,29 +394,31 @@ const syncPettyCashForUser = async (userId) => {
       costCenterName: row[2],
       number: parseNum(row[3]),
       payingOfficer: {
-        name: row[4],
-        email: row[5],
-        empNumber: parseNum(row[6])
-      },
-      supervisingOfficer: {
-        name: row[7],
-        email: row[8],
-        empNumber: parseNum(row[9])
-      },
-      reportingAccountant: {
-        name: row[10],
-        email: row[11],
+        name: row[11],
+        email: row[4],
         empNumber: parseNum(row[12])
       },
-      year: parseNum(row[13]),
-      month: row[14],
-      floatAmount: parseNum(row[15]),
-      cashInHand: parseNum(row[16]),
-      invoiceAmount: parseNum(row[17]),
-      utilization: parseNum(row[18]),
-      variance: parseNum(row[19]),
-      varianceStatus: row[20],
-      checkedStatus: row[21]
+      supervisingOfficer: {
+        name: row[5],
+        email: row[6],
+        empNumber: parseNum(row[7])
+      },
+      reportingAccountant: {
+        name: row[8],
+        email: row[9],
+        empNumber: parseNum(row[10])
+      },
+      year,
+      month,
+      floatAmount: floatVal,
+      cashInHand: parseNum(row[15]),
+      invoiceAmount: expensesVal,
+      total: parseNum(row[17]),
+      variance: varianceVal,
+      utilization: floatVal ? (expensesVal / floatVal) * 100 : 0,
+      varianceStatus: varianceVal === 0 ? 'Balanced' : 'Unbalanced',
+      checkedStatus: dateStr || String(rawReconciliationDate || ''),
+      dateOfReconciliation: dateStr || String(rawReconciliationDate || '')
     });
   }
 
@@ -276,12 +454,49 @@ exports.googleDriveSync = async (req, res) => {
 exports.getRecords = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    let matchQuery = { createdBy: new Types.ObjectId(req.user.id) };
+    let targetUserId = req.user.id;
+
+    // All non-admin roles (including accountant) should read from admin's imported data
+    if (req.user.role !== 'admin') {
+      const adminUser = await User.findOne({ role: 'admin' });
+      if (adminUser) {
+        targetUserId = adminUser._id;
+      }
+    }
+
+    let matchQuery = { createdBy: new Types.ObjectId(targetUserId) };
+
+    // Collect $or conditions; we may need more than one
+    const orConditions = [];
 
     if (importFileId === 'legacy') {
-      matchQuery.$or = [{ importFileId: { $exists: false } }, { importFileId: null }];
+      orConditions.push([{ importFileId: { $exists: false } }, { importFileId: null }]);
     } else if (importFileId) {
       matchQuery.importFileId = new Types.ObjectId(importFileId);
+    }
+
+    // Accountant filtering: only show records assigned to their service number
+    if (req.user.role === 'accountant' && req.user.serviceNumber) {
+      const trimmedServiceNumber = req.user.serviceNumber.trim();
+      const svcNum = parseInt(trimmedServiceNumber, 10);
+      const empNumberVariants = [
+        { 'reportingAccountant.empNumber': trimmedServiceNumber },
+        { 'reportingAccountant.empNumber': String(trimmedServiceNumber) }
+      ];
+      if (!isNaN(svcNum)) {
+        empNumberVariants.push({ 'reportingAccountant.empNumber': svcNum });
+        empNumberVariants.push({ 'reportingAccountant.empNumber': String(svcNum) });
+        empNumberVariants.push({ 'reportingAccountant.empNumber': String(svcNum).padStart(6, '0') });
+      }
+      orConditions.push(empNumberVariants);
+      console.log('Accountant filtering - serviceNumber:', trimmedServiceNumber, 'svcNum:', svcNum, 'variants:', empNumberVariants);
+    }
+
+    // Merge all $or conditions safely using $and
+    if (orConditions.length === 1) {
+      matchQuery.$or = orConditions[0];
+    } else if (orConditions.length > 1) {
+      matchQuery.$and = orConditions.map(cond => ({ $or: cond }));
     }
 
     const records = await PettyCashRecord.aggregate([
@@ -289,12 +504,12 @@ exports.getRecords = async (req, res) => {
       {
         $lookup: {
           from: 'accountants',
-          let: { 
-            r_region: { $toLower: { $trim: { input: '$region' } } }, 
-            r_pcf: { $toLower: { $trim: { input: '$pcfRef' } } }, 
-            r_year: '$year', 
-            r_month: { $toLower: { $trim: { input: '$month' } } }, 
-            r_user: '$createdBy' 
+          let: {
+            r_region: { $toLower: { $trim: { input: '$region' } } },
+            r_pcf: { $toLower: { $trim: { input: '$pcfRef' } } },
+            r_year: '$year',
+            r_month: { $toLower: { $trim: { input: '$month' } } },
+            r_user: '$createdBy'
           },
           pipeline: [
             {
@@ -337,9 +552,9 @@ exports.getRecords = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
-    const files = await ImportedFile.find({ 
-      createdBy: req.user.id, 
-      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }] 
+    const files = await ImportedFile.find({
+      createdBy: req.user.id,
+      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
     }).sort({ createdAt: -1 }).lean();
 
     const legacyCount = await PettyCashRecord.countDocuments({
@@ -392,9 +607,9 @@ exports.deleteRecords = async (req, res) => {
 
     const result = await PettyCashRecord.deleteMany({ createdBy: req.user.id });
     // Fix: Only delete pettyCash files, don't touch accountant files
-    await ImportedFile.deleteMany({ 
-      createdBy: req.user.id, 
-      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }] 
+    await ImportedFile.deleteMany({
+      createdBy: req.user.id,
+      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
     });
 
     res.json({ message: 'Imported data deleted successfully.', deletedCount: result.deletedCount || 0 });

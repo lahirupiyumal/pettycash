@@ -5,7 +5,7 @@ const auditLog = (action, actionType = 'other', resource = null) => {
   return async (req, res, next) => {
     // Store original send to capture response
     const originalSend = res.send;
-    
+
     // Attach audit info to request for later use
     req.auditInfo = {
       action,
@@ -34,7 +34,7 @@ const createAuditLog = async (userData, action, actionType, details = null, meta
       sessionStart: new Date(),
       metadata
     });
-    
+
     await auditEntry.save();
     return auditEntry;
   } catch (error) {

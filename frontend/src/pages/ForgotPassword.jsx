@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import logo from '../Assert/Logo.png';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -45,9 +46,9 @@ export default function ForgotPassword() {
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 flex justify-center">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg"
-            alt="SLT Logo"
-            className="h-16 w-auto object-contain drop-shadow-lg"
+            src={logo}
+            alt="Logo"
+            className="h-20 w-auto object-contain drop-shadow-lg"
           />
         </div>
 

@@ -7,16 +7,19 @@ import { useRecords } from '../hooks/useRecords';
 import ImportExcelFile from '../components/ImportExcelFile';
 import Variance from '../components/Variance';
 import CashInHand from '../components/CashInHand';
+import CashFloatAmount from '../components/CashFloatAmount';
+import TotalExpenses from '../components/TotalExpenses';
+import Total from '../components/Total';
 import MonthlySummary from '../components/MonthlySummary';
 import Overview from '../components/Overview';
 import ImportedDataPage from './ImportedData';
 import Forecast from '../components/Forecast';
 import InvoiceTotal from '../components/InvoiceTotal';
 import CostCenters from '../components/CostCenters';
-import AccountantImport from './AccountantImport';
-import AccountantImportedData from './AccountantImportedData';
 import AccountantProgressAnalytics from './AccountantProgressAnalytics';
+import AccountantDashboard from './AccountantDashboard';
 import Audit from './Audit';
+import logo from '../Assert/Logo.png';
 import {
   BarChart3,
   BookUser,
@@ -32,6 +35,8 @@ import {
   Settings,
   UserCircle2,
   ClipboardList,
+  Wallet,
+  DollarSign,
 } from 'lucide-react';
 
 // Route wrapper components to pass context props down to existing tab views
@@ -75,6 +80,51 @@ export function CashInHandRoute() {
     );
   }
   return <CashInHand records={records || []} />;
+}
+
+export function CashFloatAmountRoute() {
+  const { records, recordsLoading, recordsError } = useOutletContext();
+  if (recordsError) {
+    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
+  }
+  if (recordsLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  return <CashFloatAmount records={records || []} />;
+}
+
+export function TotalExpensesRoute() {
+  const { records, recordsLoading, recordsError } = useOutletContext();
+  if (recordsError) {
+    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
+  }
+  if (recordsLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  return <TotalExpenses records={records || []} />;
+}
+
+export function TotalRoute() {
+  const { records, recordsLoading, recordsError } = useOutletContext();
+  if (recordsError) {
+    return <p className="text-red-500 text-sm bg-red-50 p-3 rounded">{recordsError}</p>;
+  }
+  if (recordsLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  return <Total records={records || []} />;
 }
 
 export function VarianceRoute() {
@@ -141,18 +191,13 @@ export function ImportExcelFileRoute() {
   return <ImportExcelFile onImportSuccess={handleImportSuccess} />;
 }
 
-export function AccountantDataRoute() {
-  const { refreshTrigger } = useOutletContext();
-  return <AccountantImportedData refreshTrigger={refreshTrigger} />;
-}
-
-export function AccountantImportRoute() {
-  const { handleAccountantImportSuccess } = useOutletContext();
-  return <AccountantImport onImportSuccess={handleAccountantImportSuccess} />;
-}
-
 export function AccountantDetailsRoute() {
   const { refreshTrigger } = useOutletContext();
+  const { user } = useAuth();
+  
+  if (user?.role === 'accountant') {
+    return <AccountantDashboard refreshTrigger={refreshTrigger} />;
+  }
   return <AccountantProgressAnalytics refreshTrigger={refreshTrigger} />;
 }
 
@@ -177,23 +222,21 @@ export default function Dashboard() {
     navigate('/imported-data');
   }, [navigate]);
 
-  const handleAccountantImportSuccess = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
-    navigate('/accountant-data');
-  }, [navigate]);
-
   const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
   const isAdmin = user?.role === 'admin';
   const isAccountant = user?.role === 'accountant';
+  const isDepartmentLead = user?.role === 'department_lead';
 
   const menuItems = useMemo(() => {
     const items = [
       { label: 'OVERVIEW', icon: LayoutDashboard, path: '/overview' },
-      { label: 'INVOICE TOTAL', icon: ReceiptText, path: '/invoice-total' },
+      { label: 'CASH FLOAT AMOUNT', icon: Wallet, path: '/cash-float-amount' },
       { label: 'CASH IN HAND', icon: HandCoins, path: '/cash-in-hand' },
+      { label: 'TOTAL EXPENSES', icon: ReceiptText, path: '/total-expenses' },
+      { label: 'TOTAL', icon: DollarSign, path: '/total' },
       { label: 'VARIANCE', icon: PieChart, path: '/variance' },
       { label: 'Monthly Summary', icon: BarChart3, path: '/monthly-summary' },
       { label: 'Cost Centers', icon: Grid2x2, path: '/cost-centers' },
@@ -201,8 +244,6 @@ export default function Dashboard() {
       { label: 'Accountant Details', icon: BookUser, path: '/accountant-details' },
       { label: 'Imported Data', icon: FileSpreadsheet, path: '/imported-data' },
       { label: 'Import Excel File', icon: Upload, path: '/import-excel' },
-      { label: 'Accountant Data', icon: FileSpreadsheet, path: '/accountant-data' },
-      { label: 'Accountant Import', icon: Upload, path: '/accountant-import' },
     ];
 
     if (isAdmin) {
@@ -222,26 +263,30 @@ export default function Dashboard() {
     }
     return menuItems.filter(item => [
       'Accountant Details',
-      'Accountant Data',
-      'Accountant Import'
     ].includes(item.label));
   }, [isAccountant, menuItems]);
+
+  // Department Lead menu items
+  const departmentLeadMenuItems = useMemo(() => {
+    if (!isDepartmentLead) return [];
+    return menuItems.filter(item => item.label === 'Accountant Details');
+  }, [isDepartmentLead, menuItems]);
 
   const mainMenuItems = useMemo(() => {
     if (isAdmin || isAccountant) {
       return [];
     }
 
-    return menuItems.filter(item => ['OVERVIEW', 'INVOICE TOTAL', 'CASH IN HAND', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label));
+    return menuItems.filter(item => ['OVERVIEW', 'CASH FLOAT AMOUNT', 'CASH IN HAND', 'TOTAL EXPENSES', 'TOTAL', 'VARIANCE', 'Monthly Summary', 'Cost Centers', 'Forecast'].includes(item.label));
   }, [isAdmin, isAccountant, menuItems]);
 
   const dataManagementItems = useMemo(() => {
-    if (isAdmin || isAccountant) {
+    if (!isAdmin) {
       return [];
     }
 
     return menuItems.filter(item => ['Imported Data', 'Import Excel File'].includes(item.label));
-  }, [isAdmin, isAccountant, menuItems]);
+  }, [isAdmin, menuItems]);
 
   const profileItems = useMemo(() => {
     if (isAdmin || isAccountant) {
@@ -287,9 +332,9 @@ export default function Dashboard() {
         {/* Logo Section */}
         <div className="relative flex items-center justify-center py-8 px-6 border-b border-slate-800/60">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/e/ed/SLTMobitel_Logo.svg"
-            alt="SLT Logo"
-            className="h-16 w-auto object-contain drop-shadow-md"
+            src={logo}
+            alt="Logo"
+            className="h-20 w-auto object-contain drop-shadow-md"
           />
         </div>
 
@@ -310,6 +355,36 @@ export default function Dashboard() {
                       to={path}
                       className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/10'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <span className="flex-1 text-left tracking-wide">{label}</span>
+                      {isActive && (
+                        <span className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Department Lead Menu Group */}
+          {departmentLeadMenuItems.length > 0 && (
+            <div>
+              <p className="px-3 mb-3 text-[11px] font-extrabold tracking-[0.2em] text-slate-500 uppercase">
+                Main Menu
+              </p>
+              <div className="space-y-1">
+                {departmentLeadMenuItems.map(({ label, icon: Icon, path }) => {
+                  const isActive = location.pathname === path;
+                  return (
+                    <Link
+                      key={label}
+                      to={path}
+                      className={`group relative w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 ring-1 ring-white/10'
                           : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                         }`}
                     >
@@ -521,30 +596,33 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {!isAdmin && (
-          <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
-            <div className="flex gap-2 min-w-max">
-              {/* Mobile navigation items based on role */}
-              {(isAccountant ? accountantMenuItems.concat(accountantProfileItems) : 
-                mainMenuItems.concat(dataManagementItems).concat(profileItems))
-                .map(({ label, path }) => {
-                  const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
-                  return (
-                    <Link
-                      key={label}
-                      to={path}
-                      className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-slate-600 border-slate-200'
-                        }`}
-                    >
-                      {label}
-                    </Link>
-                  );
-                })}
-            </div>
+        <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {/* Mobile navigation items based on role */}
+            {(isAdmin
+              ? adminItems.concat(dataManagementItems)
+              : isAccountant
+                ? accountantMenuItems.concat(accountantProfileItems)
+                : isDepartmentLead
+                  ? departmentLeadMenuItems
+                  : mainMenuItems.concat(dataManagementItems).concat(profileItems)
+            ).map(({ label, path }) => {
+              const isActive = location.pathname === path || (path === '/overview' && location.pathname === '/');
+              return (
+                <Link
+                  key={label}
+                  to={path}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold border ${isActive
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         <main className="flex-1 px-5 py-4 md:px-8 md:py-5 overflow-y-auto bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f1f5f9_32%,#f8fafc_100%)]">
           <div className="max-w-7xl mx-auto">
@@ -556,7 +634,6 @@ export default function Dashboard() {
                 recordsError,
                 refreshTrigger,
                 handleImportSuccess,
-                handleAccountantImportSuccess,
                 handleDeleteSuccess,
               }}
             />

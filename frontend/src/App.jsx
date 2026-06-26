@@ -16,10 +16,11 @@ import Dashboard, {
   ForecastRoute,
   ImportedDataRoute,
   ImportExcelFileRoute,
-  AccountantDataRoute,
-  AccountantImportRoute,
   AccountantDetailsRoute,
   AuditRoute,
+  CashFloatAmountRoute,
+  TotalExpensesRoute,
+  TotalRoute,
 } from './pages/Dashboard';
 import AdminPanel from './components/AdminPanel';
 
@@ -28,12 +29,30 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />;
 };
 
+const AdminRoute = ({ children }) => {
+  const { token, user } = useAuth();
+  if (!token) return <Navigate to="/login" replace />;
+  if (user?.role !== 'admin') {
+    if (user?.role === 'accountant') {
+      return <Navigate to="/accountant-details" replace />;
+    }
+    if (user?.role === 'department_lead') {
+      return <Navigate to="/accountant-details" replace />;
+    }
+    return <Navigate to="/overview" replace />;
+  }
+  return children;
+};
+
 function DashboardIndex() {
   const { user } = useAuth();
   if (user?.role === 'admin') {
     return <Navigate to="/admin" replace />;
   }
   if (user?.role === 'accountant') {
+    return <Navigate to="/accountant-details" replace />;
+  }
+  if (user?.role === 'department_lead') {
     return <Navigate to="/accountant-details" replace />;
   }
   return <Navigate to="/overview" replace />;
@@ -58,6 +77,9 @@ export default function App() {
             <Route path="overview" element={<OverviewRoute />} />
             <Route path="invoice-total" element={<InvoiceTotalRoute />} />
             <Route path="cash-in-hand" element={<CashInHandRoute />} />
+            <Route path="cash-float-amount" element={<CashFloatAmountRoute />} />
+            <Route path="total-expenses" element={<TotalExpensesRoute />} />
+            <Route path="total" element={<TotalRoute />} />
             <Route path="variance" element={<VarianceRoute />} />
             <Route path="monthly-summary" element={<MonthlySummaryRoute />} />
             <Route path="cost-centers" element={<CostCentersRoute />} />
@@ -66,16 +88,14 @@ export default function App() {
             <Route path="profile" element={<Profile />} />
             
             {/* Data Management Routes */}
-            <Route path="imported-data" element={<ImportedDataRoute />} />
-            <Route path="import-excel" element={<ImportExcelFileRoute />} />
-            <Route path="accountant-data" element={<AccountantDataRoute />} />
-            <Route path="accountant-import" element={<AccountantImportRoute />} />
+            <Route path="imported-data" element={<AdminRoute><ImportedDataRoute /></AdminRoute>} />
+            <Route path="import-excel" element={<AdminRoute><ImportExcelFileRoute /></AdminRoute>} />
             
             {/* Admin Panel Route */}
-            <Route path="admin" element={<AdminPanel />} />
+            <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
             
             {/* Audit Route */}
-            <Route path="audit" element={<AuditRoute />} />
+            <Route path="audit" element={<AdminRoute><AuditRoute /></AdminRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

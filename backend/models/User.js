@@ -6,10 +6,11 @@ const userSchema = new mongoose.Schema({
   password: { type: String, default: '' },
   microsoftId: { type: String, unique: true, sparse: true },
   authProvider: { type: String, enum: ['local', 'microsoft'], default: 'local' },
-  role: { type: String, enum: ['admin', 'user', 'accountant'], default: 'user' },
+  role: { type: String, enum: ['admin', 'user', 'accountant', 'department_lead', 'department lead'], default: 'user' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   isApproved: { type: Boolean, default: false },
-  roleSelected: { type: Boolean, default: false }
+  roleSelected: { type: Boolean, default: false },
+  serviceNumber: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

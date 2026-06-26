@@ -72,7 +72,7 @@ export default function AdminPanel() {
     }
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -88,15 +88,15 @@ export default function AdminPanel() {
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search users..." 
+            <input
+              type="text"
+              placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all w-full md:w-64"
             />
           </div>
-          <button 
+          <button
             onClick={fetchUsers}
             className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all"
             title="Refresh list"
@@ -176,6 +176,7 @@ export default function AdminPanel() {
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Role</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Contact</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Service ID</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Actions</th>
               </tr>
             </thead>
@@ -187,6 +188,7 @@ export default function AdminPanel() {
                     <td className="px-6 py-4"><div className="h-6 w-16 bg-slate-100 rounded-lg"></div></td>
                     <td className="px-6 py-4"><div className="h-6 w-16 bg-slate-100 rounded-lg"></div></td>
                     <td className="px-6 py-4"><div className="h-6 w-40 bg-slate-100 rounded-lg"></div></td>
+                    <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-100 rounded-lg"></div></td>
                     <td className="px-6 py-4"><div className="h-6 w-24 bg-slate-100 rounded-lg"></div></td>
                   </tr>
                 ))
@@ -201,11 +203,10 @@ export default function AdminPanel() {
                       <tr key={user._id} className="hover:bg-slate-50/80 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                              user.role === 'admin' ? 'bg-blue-100 text-blue-600' : 
-                              user.role === 'accountant' ? 'bg-purple-100 text-purple-600' :
-                              'bg-slate-100 text-slate-600'
-                            }`}>
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-sm ${user.role === 'admin' ? 'bg-blue-100 text-blue-600' :
+                                user.role === 'accountant' ? 'bg-purple-100 text-purple-600' :
+                                  'bg-slate-100 text-slate-600'
+                              }`}>
                               {user.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -215,24 +216,22 @@ export default function AdminPanel() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                            user.role === 'admin' 
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${user.role === 'admin'
                               ? 'bg-blue-50 text-blue-600 border-blue-100'
                               : user.role === 'accountant'
-                              ? 'bg-purple-50 text-purple-600 border-purple-100'
-                              : 'bg-slate-50 text-slate-600 border-slate-100'
-                          }`}>
+                                ? 'bg-purple-50 text-purple-600 border-purple-100'
+                                : 'bg-slate-50 text-slate-600 border-slate-100'
+                            }`}>
                             {user.role}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                            user.status === 'approved' 
-                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${user.status === 'approved'
+                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                               : user.status === 'rejected'
-                              ? 'bg-red-50 text-red-600 border-red-100'
-                              : 'bg-amber-50 text-amber-600 border-amber-100'
-                          }`}>
+                                ? 'bg-red-50 text-red-600 border-red-100'
+                                : 'bg-amber-50 text-amber-600 border-amber-100'
+                            }`}>
                             {user.status}
                           </span>
                         </td>
@@ -242,10 +241,13 @@ export default function AdminPanel() {
                             {user.email}
                           </div>
                         </td>
+                        <td className="px-6 py-4 text-sm text-slate-900 font-mono font-bold">
+                          {user.serviceNumber || '—'}
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             {user.status !== 'approved' && user.role !== 'admin' && (
-                              <button 
+                              <button
                                 onClick={() => handleStatusUpdate(user._id, 'approved')}
                                 className="px-3 py-1.5 bg-emerald-500 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
                               >
@@ -253,7 +255,7 @@ export default function AdminPanel() {
                               </button>
                             )}
                             {user.status !== 'rejected' && user.role !== 'admin' && (
-                              <button 
+                              <button
                                 onClick={() => handleStatusUpdate(user._id, 'rejected')}
                                 className="px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold rounded-lg hover:bg-red-600 transition-colors shadow-sm"
                               >
@@ -261,7 +263,7 @@ export default function AdminPanel() {
                               </button>
                             )}
                             {user.role !== 'admin' && (
-                              <button 
+                              <button
                                 onClick={() => handleDelete(user._id, user.name)}
                                 className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
                                 title="Delete Account"
@@ -274,7 +276,7 @@ export default function AdminPanel() {
                             )}
                             {/* View Accountant Details button - only for accountants */}
                             {user.role === 'accountant' && hasAccountantRecords && (
-                              <button 
+                              <button
                                 onClick={() => setSelectedAccountant(isExpanded ? null : user._id)}
                                 className="px-3 py-1.5 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-lg hover:bg-purple-200 transition-all shadow-sm flex items-center gap-1"
                               >
@@ -292,7 +294,7 @@ export default function AdminPanel() {
                       {/* Expandable Accountant Details Row */}
                       {isExpanded && hasAccountantRecords && (
                         <tr>
-                          <td colSpan="5" className="px-6 py-4 bg-purple-50/30 border-t border-purple-100">
+                          <td colSpan="6" className="px-6 py-4 bg-purple-50/30 border-t border-purple-100">
                             <div className="bg-white rounded-xl border border-purple-200 p-4">
                               <h4 className="text-sm font-bold text-purple-700 mb-3 flex items-center gap-2">
                                 <BookUser className="h-4 w-4" />
@@ -350,7 +352,7 @@ export default function AdminPanel() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center">
+                  <td colSpan="6" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-400">
                       <Search className="h-10 w-10 opacity-20" />
                       <p className="font-medium text-slate-500">No users found matching your search</p>
