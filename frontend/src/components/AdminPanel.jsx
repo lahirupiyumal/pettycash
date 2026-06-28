@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import { Users, Shield, Mail, Calendar, Search, RefreshCw, Trash2, BookUser, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function AdminPanel() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [accountantRecords, setAccountantRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -263,13 +265,28 @@ export default function AdminPanel() {
                                 Deny
                               </button>
                             )}
-                            <button
-                              onClick={() => handleDelete(user._id, user.name)}
-                              className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                              title="Delete Account"
-                            >
-                              Delete
-                            </button>
+                            {user.role !== 'admin' && (
+                              <button
+                                onClick={() => handleDelete(user._id, user.name)}
+                                className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                title="Delete Account"
+                              >
+                                Delete
+                              </button>
+                            )}
+                            {user.role === 'admin' && (
+                              currentUser && currentUser.id === user._id ? (
+                                <span className="text-[10px] font-bold text-slate-400 italic">No actions</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleDelete(user._id, user.name)}
+                                  className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                  title="Delete Account"
+                                >
+                                  Delete
+                                </button>
+                              )
+                            )}
                             {/* View Accountant Details button - only for accountants */}
                             {user.role === 'accountant' && hasAccountantRecords && (
                               <button

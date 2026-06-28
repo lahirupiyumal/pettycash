@@ -165,12 +165,16 @@ export default function Login() {
                       onChange={e => setSelectedRole(e.target.value)}
                       required
                     >
-                      {ROLE_OPTIONS.map(role => (
-                        <option key={role.value} value={role.value}>{role.label}</option>
-                      ))}
+                      <option value="department_lead">Department Lead</option>
+                      <option value="accountant">Accountant</option>
+                      <option value="admin">Admin</option>
                     </select>
                     <p className="mt-1.5 text-[10px] text-slate-400">
-                      {ROLE_DESCRIPTIONS[selectedRole]}
+                      {selectedRole === 'department_lead'
+                        ? 'Department Lead accounts require manual administrator approval.'
+                        : selectedRole === 'accountant'
+                        ? 'Accountant accounts are auto-approved only when your service ID matches Reporting Accountant Emp.'
+                        : 'Admin accounts will be approved and have direct access to the dashboard.'}
                     </p>
                   </div>
 

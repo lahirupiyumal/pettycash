@@ -152,12 +152,16 @@ export default function Register() {
                   onChange={e => setForm({ ...form, role: e.target.value })}
                   required
                 >
-                  {ROLE_OPTIONS.map(role => (
-                    <option key={role.value} value={role.value}>{role.label}</option>
-                  ))}
+                  <option value="department_lead">Department Lead</option>
+                  <option value="accountant">Accountant</option>
+                  <option value="admin">Admin</option>
                 </select>
                 <p className="mt-1.5 text-[10px] text-slate-400">
-                  {ROLE_DESCRIPTIONS[form.role]}
+                  {form.role === 'department_lead'
+                    ? 'Department Lead account with team management access'
+                    : form.role === 'accountant'
+                    ? 'Accountant account with extended data management privileges'
+                    : 'Admin account with full access to the dashboard'}
                 </p>
               </div>
 
