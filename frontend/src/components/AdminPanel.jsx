@@ -197,6 +197,7 @@ export default function AdminPanel() {
                   const userAccountantRecords = getAccountantRecordsForUser(user._id);
                   const hasAccountantRecords = userAccountantRecords.length > 0;
                   const isExpanded = selectedAccountant === user._id;
+                  const isProtectedAdmin = user.role === 'admin' && user.status === 'approved';
 
                   return (
                     <>
@@ -246,7 +247,7 @@ export default function AdminPanel() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            {user.status !== 'approved' && user.role !== 'admin' && (
+                            {user.status !== 'approved' && !isProtectedAdmin && (
                               <button
                                 onClick={() => handleStatusUpdate(user._id, 'approved')}
                                 className="px-3 py-1.5 bg-emerald-500 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
@@ -254,7 +255,7 @@ export default function AdminPanel() {
                                 Approve
                               </button>
                             )}
-                            {user.status !== 'rejected' && user.role !== 'admin' && (
+                            {user.status !== 'rejected' && !isProtectedAdmin && (
                               <button
                                 onClick={() => handleStatusUpdate(user._id, 'rejected')}
                                 className="px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold rounded-lg hover:bg-red-600 transition-colors shadow-sm"
@@ -262,7 +263,7 @@ export default function AdminPanel() {
                                 Deny
                               </button>
                             )}
-                            {user.role !== 'admin' && (
+                            {!isProtectedAdmin && (
                               <button
                                 onClick={() => handleDelete(user._id, user.name)}
                                 className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
@@ -271,7 +272,7 @@ export default function AdminPanel() {
                                 Delete
                               </button>
                             )}
-                            {user.role === 'admin' && (
+                            {isProtectedAdmin && (
                               <span className="text-[10px] font-bold text-slate-400 italic">No actions</span>
                             )}
                             {/* View Accountant Details button - only for accountants */}

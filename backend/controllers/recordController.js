@@ -66,8 +66,28 @@ const CASE_INSENSITIVE_COLLATION = { locale: 'en', strength: 2 };
 const LEGACY_IDENTITY_INDEX_KEY = { createdBy: 1, region: 1, pcfRef: 1, year: 1, month: 1 };
 const RECORD_LOOKUP_FIELDS = 'region pcfRef costCenterName number payingOfficer supervisingOfficer reportingAccountant year month floatAmount cashInHand invoiceAmount total variance checkedStatus dateOfReconciliation importFileId';
 const IDENTITY_LOOKUP_BATCH_SIZE = 500;
+const PETTY_CASH_FILE_TYPE_FILTER = [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }];
 
 let legacyIdentityIndexDropPromise = null;
+
+const getAdminUserObjectIds = async (currentUserId) => {
+  const adminIds = await User.distinct('_id', { role: 'admin' });
+  const adminIdSet = new Set(adminIds.map(id => String(id)));
+
+  if (currentUserId && !adminIdSet.has(String(currentUserId))) {
+    adminIds.push(currentUserId);
+  }
+
+  return adminIds.map(id => id instanceof Types.ObjectId ? id : new Types.ObjectId(id));
+};
+
+const getVisibleImportedOwnerFilter = async (req) => {
+  if (req.user.role === 'admin') {
+    return { $in: await getAdminUserObjectIds(req.user.id) };
+  }
+
+  return new Types.ObjectId(req.user.id);
+};
 
 const hasSameIndexKey = (actualKey, expectedKey) => {
   const actualEntries = Object.entries(actualKey || {});
@@ -454,17 +474,19 @@ exports.googleDriveSync = async (req, res) => {
 exports.getRecords = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    let targetUserId = req.user.id;
+    let targetUserFilter = new Types.ObjectId(req.user.id);
 
-    // All non-admin roles (including accountant) should read from admin's imported data
-    if (req.user.role !== 'admin') {
+    if (req.user.role === 'admin') {
+      targetUserFilter = { $in: await getAdminUserObjectIds(req.user.id) };
+    } else {
+      // All non-admin roles (including accountant) should read from admin's imported data
       const adminUser = await User.findOne({ role: 'admin' });
       if (adminUser) {
-        targetUserId = adminUser._id;
+        targetUserFilter = adminUser._id;
       }
     }
 
-    let matchQuery = { createdBy: new Types.ObjectId(targetUserId) };
+    let matchQuery = { createdBy: targetUserFilter };
 
     // Collect $or conditions; we may need more than one
     const orConditions = [];
@@ -552,19 +574,20 @@ exports.getRecords = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
+    const createdByFilter = await getVisibleImportedOwnerFilter(req);
     const files = await ImportedFile.find({
-      createdBy: req.user.id,
-      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
+      createdBy: createdByFilter,
+      $or: PETTY_CASH_FILE_TYPE_FILTER
     }).sort({ createdAt: -1 }).lean();
 
     const legacyCount = await PettyCashRecord.countDocuments({
-      createdBy: req.user.id,
+      createdBy: createdByFilter,
       $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
     });
 
     if (legacyCount > 0) {
       const latestLegacyRecord = await PettyCashRecord.findOne({
-        createdBy: req.user.id,
+        createdBy: createdByFilter,
         $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
       }).sort({ createdAt: -1 });
 
@@ -585,18 +608,29 @@ exports.getImportedFiles = async (req, res) => {
 exports.deleteRecords = async (req, res) => {
   try {
     const { importFileId } = req.query;
+    const createdByFilter = await getVisibleImportedOwnerFilter(req);
 
     if (importFileId) {
       let result;
 
       if (importFileId === 'legacy') {
         result = await PettyCashRecord.deleteMany({
-          createdBy: req.user.id,
+          createdBy: createdByFilter,
           $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
         });
       } else {
-        result = await PettyCashRecord.deleteMany({ createdBy: req.user.id, importFileId });
-        await ImportedFile.deleteOne({ _id: importFileId, createdBy: req.user.id });
+        const importFile = await ImportedFile.findOne({
+          _id: importFileId,
+          createdBy: createdByFilter,
+          $or: PETTY_CASH_FILE_TYPE_FILTER,
+        });
+
+        if (!importFile) {
+          return res.status(404).json({ message: 'Imported file not found.' });
+        }
+
+        result = await PettyCashRecord.deleteMany({ createdBy: importFile.createdBy, importFileId: importFile._id });
+        await ImportedFile.deleteOne({ _id: importFile._id });
       }
 
       return res.json({
@@ -605,11 +639,11 @@ exports.deleteRecords = async (req, res) => {
       });
     }
 
-    const result = await PettyCashRecord.deleteMany({ createdBy: req.user.id });
+    const result = await PettyCashRecord.deleteMany({ createdBy: createdByFilter });
     // Fix: Only delete pettyCash files, don't touch accountant files
     await ImportedFile.deleteMany({
-      createdBy: req.user.id,
-      $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
+      createdBy: createdByFilter,
+      $or: PETTY_CASH_FILE_TYPE_FILTER
     });
 
     res.json({ message: 'Imported data deleted successfully.', deletedCount: result.deletedCount || 0 });

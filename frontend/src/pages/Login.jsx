@@ -4,6 +4,18 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import logo from '../Assert/Logo.png';
 
+const ROLE_OPTIONS = [
+  { value: 'department_lead', label: 'Department Lead' },
+  { value: 'accountant', label: 'Accountant' },
+  { value: 'admin', label: 'Admin' },
+];
+
+const ROLE_DESCRIPTIONS = {
+  department_lead: 'Department Lead accounts require manual administrator approval.',
+  accountant: 'Accountant accounts are auto-approved only when your service ID matches Reporting Accountant Emp.',
+  admin: 'Admin accounts require manual administrator approval.',
+};
+
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -153,13 +165,12 @@ export default function Login() {
                       onChange={e => setSelectedRole(e.target.value)}
                       required
                     >
-                      <option value="department_lead">Department Lead</option>
-                      <option value="accountant">Accountant</option>
+                      {ROLE_OPTIONS.map(role => (
+                        <option key={role.value} value={role.value}>{role.label}</option>
+                      ))}
                     </select>
                     <p className="mt-1.5 text-[10px] text-slate-400">
-                      {selectedRole === 'department_lead'
-                        ? 'Department Lead accounts require manual administrator approval.'
-                        : 'Accountant accounts are auto-approved only when your service ID matches Reporting Accountant Emp.'}
+                      {ROLE_DESCRIPTIONS[selectedRole]}
                     </p>
                   </div>
 
