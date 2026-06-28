@@ -3,6 +3,8 @@ import { CalendarDays, FileSpreadsheet, Hash, Layers, Trash2 } from 'lucide-reac
 import api from '../api/axios';
 import AccountantTable from '../components/AccountantTable';
 
+const ADMIN_SHARED_REFRESH_MS = 15000;
+
 export default function AccountantImportedData({ refreshTrigger = 0 }) {
   const [deleting, setDeleting] = useState(false);
   const [filesLoading, setFilesLoading] = useState(true);
@@ -13,11 +15,14 @@ export default function AccountantImportedData({ refreshTrigger = 0 }) {
   const [recordsLoading, setRecordsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchFiles = async () => {
+    let isMounted = true;
+
+    const fetchFiles = async ({ showLoading = false } = {}) => {
       try {
-        setFilesLoading(true);
+        if (showLoading) setFilesLoading(true);
         setPageError('');
         const response = await api.get('/accountants/files');
+        if (!isMounted) return;
         const nextFiles = response.data || [];
         setFiles(nextFiles);
         if (nextFiles.length === 0) { setSelectedFileId(''); return; }
@@ -26,12 +31,19 @@ export default function AccountantImportedData({ refreshTrigger = 0 }) {
           return nextFiles[0]._id;
         });
       } catch (err) {
+        if (!isMounted) return;
         setPageError(err.response?.data?.message || err.message || 'Failed to load imported files.');
       } finally {
-        setFilesLoading(false);
+        if (isMounted && showLoading) setFilesLoading(false);
       }
     };
-    fetchFiles();
+    fetchFiles({ showLoading: true });
+    const intervalId = window.setInterval(() => fetchFiles(), ADMIN_SHARED_REFRESH_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
   }, [refreshTrigger]);
 
   // Fetch records for selected file
@@ -41,19 +53,29 @@ export default function AccountantImportedData({ refreshTrigger = 0 }) {
       return;
     }
 
-    const fetchRecords = async () => {
+    let isMounted = true;
+
+    const fetchRecords = async ({ showLoading = false } = {}) => {
       try {
-        setRecordsLoading(true);
+        if (showLoading) setRecordsLoading(true);
         const response = await api.get('/accountants', { params: { importFileId: selectedFileId } });
+        if (!isMounted) return;
         setRecords(response.data || []);
       } catch (err) {
+        if (!isMounted) return;
         console.error('Failed to fetch records:', err);
         setRecords([]);
       } finally {
-        setRecordsLoading(false);
+        if (isMounted && showLoading) setRecordsLoading(false);
       }
     };
-    fetchRecords();
+    fetchRecords({ showLoading: true });
+    const intervalId = window.setInterval(() => fetchRecords(), ADMIN_SHARED_REFRESH_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
   }, [selectedFileId, refreshTrigger]);
 
   const handleCardDelete = async (e, file) => {
