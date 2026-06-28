@@ -263,18 +263,13 @@ export default function AdminPanel() {
                                 Deny
                               </button>
                             )}
-                            {!isProtectedAdmin && (
-                              <button
-                                onClick={() => handleDelete(user._id, user.name)}
-                                className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                                title="Delete Account"
-                              >
-                                Delete
-                              </button>
-                            )}
-                            {isProtectedAdmin && (
-                              <span className="text-[10px] font-bold text-slate-400 italic">No actions</span>
-                            )}
+                            <button
+                              onClick={() => handleDelete(user._id, user.name)}
+                              className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                              title="Delete Account"
+                            >
+                              Delete
+                            </button>
                             {/* View Accountant Details button - only for accountants */}
                             {user.role === 'accountant' && hasAccountantRecords && (
                               <button
