@@ -22,18 +22,30 @@ const createAuthResponse = (user) => ({
   },
 });
 
+const REQUESTABLE_ROLES = ['department_lead', 'accountant', 'admin'];
+
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role: requestedRole } = req.body;
 
-    // Automatically set role and status for admin, else use requested role or default to user
-    const isAdmin = email === 'admin@gmail.com';
-    const role = isAdmin ? 'admin' : (['accountant', 'department_lead'].includes(requestedRole) ? requestedRole : 'user');
-    const status = isAdmin ? 'approved' : 'pending';
+    // Admin accounts do not require approval; other requested roles remain pending.
+    const isSeedAdmin = email === 'admin@gmail.com';
+    const role = isSeedAdmin ? 'admin' : (REQUESTABLE_ROLES.includes(requestedRole) ? requestedRole : 'user');
+    const isAdminRole = role === 'admin';
+    const status = isAdminRole ? 'approved' : 'pending';
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed, role, status, authProvider: 'local', roleSelected: true });
-    res.status(201).json({ message: isAdmin ? 'Admin account created' : 'Registration successful. Waiting for admin approval.' });
+    await User.create({
+      name,
+      email,
+      password: hashed,
+      role,
+      status,
+      isApproved: isAdminRole,
+      authProvider: 'local',
+      roleSelected: true
+    });
+    res.status(201).json({ message: isAdminRole ? 'Admin account created. You can sign in now.' : 'Registration successful. Waiting for admin approval.' });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -142,7 +154,7 @@ exports.selectRole = async (req, res) => {
     if (!userId || !role) {
       return res.status(400).json({ message: 'User ID and role are required.' });
     }
-    if (!['accountant', 'department_lead'].includes(role)) {
+    if (!REQUESTABLE_ROLES.includes(role)) {
       return res.status(400).json({ message: 'Invalid role selection.' });
     }
     const user = await User.findById(userId);
@@ -154,6 +166,18 @@ exports.selectRole = async (req, res) => {
     }
     user.role = role;
     user.roleSelected = true;
+
+    if (role === 'admin') {
+      user.status = 'approved';
+      user.isApproved = true;
+      await user.save();
+
+      return res.json({
+        approved: true,
+        message: 'Admin account created. Please sign in again.',
+      });
+    }
+
     await user.save();
 
     if (role === 'accountant') {

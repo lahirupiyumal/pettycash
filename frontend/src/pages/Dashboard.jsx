@@ -213,9 +213,15 @@ export default function Dashboard() {
   // Keep transactions for backwards compatibility with summary cards if needed
   const { transactions } = useTransactions();
   const { summary } = useSummary(transactions);
+  const isAdmin = user?.role === 'admin';
+  const isAccountant = user?.role === 'accountant';
+  const isDepartmentLead = user?.role === 'department_lead';
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { records, loading: recordsLoading, error: recordsError } = useRecords(refreshTrigger);
+  const { records, loading: recordsLoading, error: recordsError } = useRecords(
+    refreshTrigger,
+    isAdmin ? 15000 : 0
+  );
 
   const handleImportSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -225,10 +231,6 @@ export default function Dashboard() {
   const handleDeleteSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
-
-  const isAdmin = user?.role === 'admin';
-  const isAccountant = user?.role === 'accountant';
-  const isDepartmentLead = user?.role === 'department_lead';
 
   const menuItems = useMemo(() => {
     const items = [

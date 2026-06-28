@@ -4,6 +4,25 @@ const User = require('../models/User');
 const { createAuditLog } = require('../middleware/audit');
 const XLSX = require('xlsx');
 
+const getAdminUserIds = async (currentUserId) => {
+  const adminIds = await User.distinct('_id', { role: 'admin' });
+  const adminIdSet = new Set(adminIds.map(id => String(id)));
+
+  if (currentUserId && !adminIdSet.has(String(currentUserId))) {
+    adminIds.push(currentUserId);
+  }
+
+  return adminIds;
+};
+
+const getVisibleImportedOwnerFilter = async (req) => {
+  if (req.user.role === 'admin') {
+    return { $in: await getAdminUserIds(req.user.id) };
+  }
+
+  return req.user.id;
+};
+
 const processImportAccountants = async (records, fileName, userId) => {
   if (!records || !Array.isArray(records) || records.length === 0) {
     throw new Error('Invalid records array');
@@ -242,16 +261,18 @@ exports.googleDriveSync = async (req, res) => {
 exports.getAccountants = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    let targetUserId = req.user.id;
+    let targetUserFilter = req.user.id;
 
-    if (req.user.role !== 'admin') {
+    if (req.user.role === 'admin') {
+      targetUserFilter = await getVisibleImportedOwnerFilter(req);
+    } else {
       const adminUser = await User.findOne({ role: 'admin' });
       if (adminUser) {
-        targetUserId = adminUser._id;
+        targetUserFilter = adminUser._id;
       }
     }
 
-    const query = { createdBy: targetUserId };
+    const query = { createdBy: targetUserFilter };
     if (importFileId) {
       query.importFileId = importFileId;
     }
@@ -277,7 +298,10 @@ exports.getAccountants = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
-    const files = await ImportedFile.find({ createdBy: req.user.id, type: 'accountant' }).sort({ createdAt: -1 });
+    const files = await ImportedFile.find({
+      createdBy: await getVisibleImportedOwnerFilter(req),
+      type: 'accountant'
+    }).sort({ createdAt: -1 });
     res.json(files);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -287,14 +311,26 @@ exports.getImportedFiles = async (req, res) => {
 exports.deleteAccountants = async (req, res) => {
   try {
     const { importFileId } = req.query;
+    const createdByFilter = await getVisibleImportedOwnerFilter(req);
+
     if (importFileId) {
-      await Accountant.deleteMany({ createdBy: req.user.id, importFileId });
-      await ImportedFile.deleteOne({ _id: importFileId, createdBy: req.user.id });
+      const importFile = await ImportedFile.findOne({
+        _id: importFileId,
+        createdBy: createdByFilter,
+        type: 'accountant',
+      });
+
+      if (!importFile) {
+        return res.status(404).json({ message: 'Imported file not found.' });
+      }
+
+      await Accountant.deleteMany({ createdBy: importFile.createdBy, importFileId: importFile._id });
+      await ImportedFile.deleteOne({ _id: importFile._id });
       return res.json({ message: 'Selected imported file data deleted successfully.' });
     }
 
-    const fileIds = await Accountant.distinct('importFileId', { createdBy: req.user.id });
-    await Accountant.deleteMany({ createdBy: req.user.id });
+    const fileIds = await Accountant.distinct('importFileId', { createdBy: createdByFilter });
+    await Accountant.deleteMany({ createdBy: createdByFilter });
     await ImportedFile.deleteMany({ _id: { $in: fileIds } });
 
     res.json({ message: 'All accountant data deleted successfully.' });
