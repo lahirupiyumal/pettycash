@@ -4,6 +4,14 @@ const User = require('../models/User');
 const { createAuditLog } = require('../middleware/audit');
 const XLSX = require('xlsx');
 
+// Returns the ID of the canonical shared admin (oldest admin by creation date).
+// All admin data reads and writes go through this single owner so every admin
+// sees the same records. Falls back to the caller's own ID if no admin exists.
+const getSharedAdminId = async (fallbackId) => {
+  const adminUser = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 }).lean();
+  return adminUser ? adminUser._id : fallbackId;
+};
+
 const processImportAccountants = async (records, fileName, userId) => {
   if (!records || !Array.isArray(records) || records.length === 0) {
     throw new Error('Invalid records array');
@@ -159,7 +167,8 @@ const processImportAccountants = async (records, fileName, userId) => {
 exports.importAccountants = async (req, res) => {
   try {
     const { records, fileName } = req.body;
-    const result = await processImportAccountants(records, fileName, req.user.id);
+    const sharedAdminId = await getSharedAdminId(req.user.id);
+    const result = await processImportAccountants(records, fileName, sharedAdminId);
     const status = result.count > 0 ? 201 : 200;
     res.status(status).json(result);
   } catch (err) {
@@ -217,7 +226,8 @@ exports.syncAccountantsForUser = syncAccountantsForUser;
 
 exports.googleDriveSync = async (req, res) => {
   try {
-    const result = await syncAccountantsForUser(req.user.id);
+    const sharedAdminId = await getSharedAdminId(req.user.id);
+    const result = await syncAccountantsForUser(sharedAdminId);
 
     const user = await User.findById(req.user.id).select('name email role').lean();
     if (user) {
@@ -242,14 +252,8 @@ exports.googleDriveSync = async (req, res) => {
 exports.getAccountants = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    let targetUserId = req.user.id;
-
-    if (req.user.role !== 'admin') {
-      const adminUser = await User.findOne({ role: 'admin' });
-      if (adminUser) {
-        targetUserId = adminUser._id;
-      }
-    }
+    // All roles always read from the shared admin's data pool
+    const targetUserId = await getSharedAdminId(req.user.id);
 
     const query = { createdBy: targetUserId };
     if (importFileId) {
@@ -277,7 +281,8 @@ exports.getAccountants = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
-    const files = await ImportedFile.find({ createdBy: req.user.id, type: 'accountant' }).sort({ createdAt: -1 });
+    const sharedAdminId = await getSharedAdminId(req.user.id);
+    const files = await ImportedFile.find({ createdBy: sharedAdminId, type: 'accountant' }).sort({ createdAt: -1 });
     res.json(files);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -287,14 +292,15 @@ exports.getImportedFiles = async (req, res) => {
 exports.deleteAccountants = async (req, res) => {
   try {
     const { importFileId } = req.query;
+    const sharedAdminId = await getSharedAdminId(req.user.id);
     if (importFileId) {
-      await Accountant.deleteMany({ createdBy: req.user.id, importFileId });
-      await ImportedFile.deleteOne({ _id: importFileId, createdBy: req.user.id });
+      await Accountant.deleteMany({ createdBy: sharedAdminId, importFileId });
+      await ImportedFile.deleteOne({ _id: importFileId, createdBy: sharedAdminId });
       return res.json({ message: 'Selected imported file data deleted successfully.' });
     }
 
-    const fileIds = await Accountant.distinct('importFileId', { createdBy: req.user.id });
-    await Accountant.deleteMany({ createdBy: req.user.id });
+    const fileIds = await Accountant.distinct('importFileId', { createdBy: sharedAdminId });
+    await Accountant.deleteMany({ createdBy: sharedAdminId });
     await ImportedFile.deleteMany({ _id: { $in: fileIds } });
 
     res.json({ message: 'All accountant data deleted successfully.' });

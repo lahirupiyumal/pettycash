@@ -6,6 +6,14 @@ const User = require('../models/User');
 const { createAuditLog } = require('../middleware/audit');
 const XLSX = require('xlsx');
 
+// Returns the ID of the canonical shared admin (oldest admin by creation date).
+// All admin data reads and writes go through this single owner so every admin
+// sees the same records. Falls back to the caller's own ID if no admin exists.
+const getSharedAdminId = async (fallbackId) => {
+  const adminUser = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 }).lean();
+  return adminUser ? adminUser._id : fallbackId;
+};
+
 const normalizeIdentityValue = (value) => {
   if (value === undefined || value === null) return '';
   if (typeof value === 'number') return Number.isNaN(value) ? '' : value;
@@ -262,7 +270,8 @@ exports.importRecords = async (req, res) => {
   try {
     const records = req.body.records;
     const fileName = req.body.fileName;
-    const result = await processImportRecords(records, fileName, req.user.id);
+    const sharedAdminId = await getSharedAdminId(req.user.id);
+    const result = await processImportRecords(records, fileName, sharedAdminId);
     const status = result.count > 0 ? 201 : 200;
     res.status(status).json(result);
   } catch (err) {
@@ -429,7 +438,8 @@ exports.syncPettyCashForUser = syncPettyCashForUser;
 
 exports.googleDriveSync = async (req, res) => {
   try {
-    const result = await syncPettyCashForUser(req.user.id);
+    const sharedAdminId = await getSharedAdminId(req.user.id);
+    const result = await syncPettyCashForUser(sharedAdminId);
 
     const user = await User.findById(req.user.id).select('name email role').lean();
     if (user) {
@@ -454,15 +464,8 @@ exports.googleDriveSync = async (req, res) => {
 exports.getRecords = async (req, res) => {
   try {
     const { importFileId } = req.query;
-    let targetUserId = req.user.id;
-
-    // All non-admin roles (including accountant) should read from admin's imported data
-    if (req.user.role !== 'admin') {
-      const adminUser = await User.findOne({ role: 'admin' });
-      if (adminUser) {
-        targetUserId = adminUser._id;
-      }
-    }
+    // All roles always read from the shared admin's data pool
+    const targetUserId = await getSharedAdminId(req.user.id);
 
     let matchQuery = { createdBy: new Types.ObjectId(targetUserId) };
 
@@ -552,19 +555,20 @@ exports.getRecords = async (req, res) => {
 
 exports.getImportedFiles = async (req, res) => {
   try {
+    const sharedAdminId = await getSharedAdminId(req.user.id);
     const files = await ImportedFile.find({
-      createdBy: req.user.id,
+      createdBy: sharedAdminId,
       $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
     }).sort({ createdAt: -1 }).lean();
 
     const legacyCount = await PettyCashRecord.countDocuments({
-      createdBy: req.user.id,
+      createdBy: sharedAdminId,
       $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
     });
 
     if (legacyCount > 0) {
       const latestLegacyRecord = await PettyCashRecord.findOne({
-        createdBy: req.user.id,
+        createdBy: sharedAdminId,
         $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
       }).sort({ createdAt: -1 });
 
@@ -585,18 +589,19 @@ exports.getImportedFiles = async (req, res) => {
 exports.deleteRecords = async (req, res) => {
   try {
     const { importFileId } = req.query;
+    const sharedAdminId = await getSharedAdminId(req.user.id);
 
     if (importFileId) {
       let result;
 
       if (importFileId === 'legacy') {
         result = await PettyCashRecord.deleteMany({
-          createdBy: req.user.id,
+          createdBy: sharedAdminId,
           $or: [{ importFileId: { $exists: false } }, { importFileId: null }],
         });
       } else {
-        result = await PettyCashRecord.deleteMany({ createdBy: req.user.id, importFileId });
-        await ImportedFile.deleteOne({ _id: importFileId, createdBy: req.user.id });
+        result = await PettyCashRecord.deleteMany({ createdBy: sharedAdminId, importFileId });
+        await ImportedFile.deleteOne({ _id: importFileId, createdBy: sharedAdminId });
       }
 
       return res.json({
@@ -605,10 +610,10 @@ exports.deleteRecords = async (req, res) => {
       });
     }
 
-    const result = await PettyCashRecord.deleteMany({ createdBy: req.user.id });
+    const result = await PettyCashRecord.deleteMany({ createdBy: sharedAdminId });
     // Fix: Only delete pettyCash files, don't touch accountant files
     await ImportedFile.deleteMany({
-      createdBy: req.user.id,
+      createdBy: sharedAdminId,
       $or: [{ type: 'pettyCash' }, { type: { $exists: false } }, { type: null }]
     });
 
