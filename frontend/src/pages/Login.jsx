@@ -155,11 +155,14 @@ export default function Login() {
                     >
                       <option value="department_lead">Department Lead</option>
                       <option value="accountant">Accountant</option>
+                      <option value="admin">Admin</option>
                     </select>
                     <p className="mt-1.5 text-[10px] text-slate-400">
                       {selectedRole === 'department_lead'
                         ? 'Department Lead accounts require manual administrator approval.'
-                        : 'Accountant accounts are auto-approved only when your service ID matches Reporting Accountant Emp.'}
+                        : selectedRole === 'accountant'
+                        ? 'Accountant accounts are auto-approved only when your service ID matches Reporting Accountant Emp.'
+                        : 'Admin accounts will be approved and have direct access to the dashboard.'}
                     </p>
                   </div>
 

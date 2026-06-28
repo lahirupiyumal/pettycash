@@ -142,11 +142,14 @@ export default function Register() {
                 >
                   <option value="department_lead">Department Lead</option>
                   <option value="accountant">Accountant</option>
+                  <option value="admin">Admin</option>
                 </select>
                 <p className="mt-1.5 text-[10px] text-slate-400">
                   {form.role === 'department_lead'
                     ? 'Department Lead account with team management access'
-                    : 'Accountant account with extended data management privileges'}
+                    : form.role === 'accountant'
+                    ? 'Accountant account with extended data management privileges'
+                    : 'Admin account with full access to the dashboard'}
                 </p>
               </div>
 

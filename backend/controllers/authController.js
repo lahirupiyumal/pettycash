@@ -27,12 +27,13 @@ exports.register = async (req, res) => {
     const { name, email, password, role: requestedRole } = req.body;
 
     // Automatically set role and status for admin, else use requested role or default to user
-    const isAdmin = email === 'admin@gmail.com';
+    const isAdmin = email === 'admin@gmail.com' || requestedRole === 'admin';
     const role = isAdmin ? 'admin' : (['accountant', 'department_lead'].includes(requestedRole) ? requestedRole : 'user');
     const status = isAdmin ? 'approved' : 'pending';
+    const isApproved = isAdmin;
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed, role, status, authProvider: 'local', roleSelected: true });
+    const user = await User.create({ name, email, password: hashed, role, status, isApproved, authProvider: 'local', roleSelected: true });
     res.status(201).json({ message: isAdmin ? 'Admin account created' : 'Registration successful. Waiting for admin approval.' });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -142,7 +143,7 @@ exports.selectRole = async (req, res) => {
     if (!userId || !role) {
       return res.status(400).json({ message: 'User ID and role are required.' });
     }
-    if (!['accountant', 'department_lead'].includes(role)) {
+    if (!['accountant', 'department_lead', 'admin'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role selection.' });
     }
     const user = await User.findById(userId);
@@ -154,6 +155,10 @@ exports.selectRole = async (req, res) => {
     }
     user.role = role;
     user.roleSelected = true;
+    if (role === 'admin') {
+      user.status = 'approved';
+      user.isApproved = true;
+    }
     await user.save();
 
     if (role === 'accountant') {
@@ -178,6 +183,13 @@ exports.selectRole = async (req, res) => {
           message: 'Your accountant account was automatically approved. Please sign in again.',
         });
       }
+    }
+
+    if (role === 'admin') {
+      return res.json({
+        approved: true,
+        message: 'Your admin account was successfully approved. Please sign in again.',
+      });
     }
 
     return res.json({
